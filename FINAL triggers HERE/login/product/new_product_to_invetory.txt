@@ -1,0 +1,80 @@
+CREATE TRIGGER `new_product_to_invetory` AFTER INSERT ON `product`
+ FOR EACH ROW BEGIN
+    DECLARE v_Price DECIMAL(10,2);
+    DECLARE v_Barcode VARCHAR(100);
+    DECLARE v_NewInventory INT;
+    DECLARE v_Status VARCHAR(20);
+    DECLARE v_NewRestock DATE;
+
+    -- Get product details (supplier fields removed)
+    SELECT StorePrice, Barcode
+    INTO v_Price, v_Barcode
+    FROM product
+    WHERE Product_ID = NEW.Product_ID;
+
+    -- Compute new inventory
+    SET v_NewInventory = NEW.UnitsOrdered - NEW.UnitSold;
+
+    -- Determine stock status
+    SET v_Status = CASE
+        WHEN v_NewInventory > 10 THEN 'IN-STOCK'
+        WHEN v_NewInventory > 0 THEN 'LOW-STOCK'
+        ELSE 'OUT-OF-STOCK'
+    END;
+
+    -- Get most recent restock date
+    SET v_NewRestock = (
+        SELECT Date_Received
+        FROM restock
+        WHERE Product_ID = NEW.Product_ID
+        ORDER BY Date_Received DESC
+        LIMIT 1
+    );
+
+    -- Check if inventory already exists at this location
+    IF EXISTS (
+        SELECT 1
+        FROM inventory
+        WHERE Product_ID = NEW.Product_ID
+          AND LocationS = NEW.LocationS
+          AND LocationR = NEW.LocationR
+    ) THEN
+
+        UPDATE inventory
+        SET
+            Inventory = v_NewInventory,
+            UnitIN = v_NewRestock,
+            Status = v_Status,
+            Price = v_Price,
+            Barcode = v_Barcode
+        WHERE Product_ID = NEW.Product_ID
+          AND LocationS = NEW.LocationS
+          AND LocationR = NEW.LocationR;
+
+    ELSE
+
+        INSERT INTO inventory (
+            Product_ID,
+            LocationS,
+            LocationR,
+            Price,
+            Inventory,
+            UnitIN,
+            UnitOut,
+            Status,
+            Barcode
+        )
+        VALUES (
+            NEW.Product_ID,
+            NEW.LocationS,
+            NEW.LocationR,
+            v_Price,
+            v_NewInventory,
+            v_NewRestock,
+            NULL,
+            v_Status,
+            v_Barcode
+        );
+
+    END IF;
+END

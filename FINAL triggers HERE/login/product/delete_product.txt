@@ -1,0 +1,8 @@
+CREATE TRIGGER `delete_product` BEFORE DELETE ON `product`
+ FOR EACH ROW BEGIN
+    DELETE FROM inventory
+    WHERE Product_ID = OLD.Product_ID;
+    
+    DELETE FROM expiration
+    WHERE Product_ID = OLD.Product_ID;
+END

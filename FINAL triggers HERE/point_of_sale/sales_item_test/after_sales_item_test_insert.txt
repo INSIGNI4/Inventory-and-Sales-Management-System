@@ -1,0 +1,6 @@
+CREATE TRIGGER `after_sales_item_test_insert` AFTER INSERT ON `sales_item_test`
+ FOR EACH ROW BEGIN
+    UPDATE login.product
+    SET UnitSold = COALESCE(UnitSold, 0) + NEW.Quantity
+    WHERE Product_ID = NEW.Product_ID;
+END

@@ -1,0 +1,58 @@
+CREATE TRIGGER `restock_status_received` BEFORE UPDATE ON `restock`
+ FOR EACH ROW BEGIN
+    DECLARE v_ExpectedReceiveDate DATE;
+
+    /*
+      1. Record the first physical arrival.
+      Good or defective units both count as an arrival.
+      Preserve the original date on subsequent updates.
+    */
+    IF NEW.Date_Received IS NULL
+       AND (
+           IFNULL(NEW.TotalReceived, 0) >
+               IFNULL(OLD.TotalReceived, 0)
+           OR
+           IFNULL(NEW.withIssue, 0) >
+               IFNULL(OLD.withIssue, 0)
+       )
+    THEN
+        SET NEW.Date_Received = CURRENT_TIMESTAMP;
+    END IF;
+
+    /*
+      2. Start with the expected date on the direct restock row.
+    */
+    SET v_ExpectedReceiveDate = NEW.Expected_Receive_Date;
+
+    /*
+      3. For legacy orders, use the expected date from
+         list_to_order when the linked record exists.
+    */
+    IF NEW.ItemToOrder_ID IS NOT NULL THEN
+        SET v_ExpectedReceiveDate = (
+            SELECT l.Expected_Receive_Date
+            FROM item_to_order i
+            INNER JOIN list_to_order l
+                ON l.ListToOrder_ID = i.ListToOrder_ID
+            WHERE i.ItemToOrder_ID = NEW.ItemToOrder_ID
+            LIMIT 1
+        );
+    END IF;
+
+    /*
+      4. Calculate delivery timing once an arrival is recorded.
+    */
+    IF NEW.Date_Received IS NOT NULL
+       AND v_ExpectedReceiveDate IS NOT NULL
+    THEN
+        IF DATE(NEW.Date_Received) < v_ExpectedReceiveDate THEN
+            SET NEW.DeliveryStatus = 'Early';
+
+        ELSEIF DATE(NEW.Date_Received) = v_ExpectedReceiveDate THEN
+            SET NEW.DeliveryStatus = 'On-Time';
+
+        ELSE
+            SET NEW.DeliveryStatus = 'Delayed';
+        END IF;
+    END IF;
+END

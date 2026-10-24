@@ -1,0 +1,175 @@
+CREATE TRIGGER `update_product_unitorder` BEFORE UPDATE ON `restock`
+ FOR EACH ROW BEGIN
+    DECLARE v_NewInventory INT;
+    DECLARE new_status VARCHAR(30);
+    DECLARE v_BatchNum VARCHAR(50);
+    DECLARE v_BatchCount INT;
+    DECLARE v_ReceivedDiff INT DEFAULT 0;
+    DECLARE v_NewReceivedTotal INT DEFAULT 0;
+    DECLARE v_TotalAccounted INT DEFAULT 0;
+
+    -- 1. Validate received and defective quantities
+    IF IFNULL(NEW.TotalReceived, 0) < 0
+       OR IFNULL(NEW.withIssue, 0) < 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT =
+            'Received quantity and issue quantity cannot be negative.';
+    END IF;
+
+    IF (
+        IFNULL(NEW.TotalReceived, 0) +
+        IFNULL(NEW.withIssue, 0)
+    ) > IFNULL(NEW.Quantity, 0) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT =
+            'TotalReceived + withIssue cannot exceed Quantity.';
+    END IF;
+
+    -- 2. Calculate the change in good units received
+    SET v_ReceivedDiff =
+        IFNULL(NEW.TotalReceived, 0) -
+        IFNULL(OLD.TotalReceived, 0);
+
+    -- 3. Automatically determine restock status
+    SET v_TotalAccounted =
+        IFNULL(NEW.TotalReceived, 0) +
+        IFNULL(NEW.withIssue, 0);
+
+    IF v_TotalAccounted <= 0 THEN
+        SET NEW.Status = 'Requested';
+
+    ELSEIF v_TotalAccounted < IFNULL(NEW.Quantity, 0)
+       AND IFNULL(NEW.withIssue, 0) > 0 THEN
+        SET NEW.Status = 'P-R-With-Issue';
+
+    ELSEIF v_TotalAccounted < IFNULL(NEW.Quantity, 0) THEN
+        SET NEW.Status = 'Partially-Received';
+
+    ELSEIF IFNULL(NEW.withIssue, 0) > 0 THEN
+        SET NEW.Status = 'Received-With-Issue';
+
+    ELSE
+        SET NEW.Status = 'Received';
+    END IF;
+
+    -- 4. Update legacy item-to-order tracking when applicable
+    IF NEW.ItemToOrder_ID IS NOT NULL
+       AND v_ReceivedDiff <> 0 THEN
+
+        SELECT
+            GREATEST(
+                IFNULL(Received_Quantity, 0) + v_ReceivedDiff,
+                0
+            )
+        INTO v_NewReceivedTotal
+        FROM item_to_order
+        WHERE ItemToOrder_ID = NEW.ItemToOrder_ID
+        LIMIT 1;
+
+        UPDATE item_to_order
+        SET
+            Received_Quantity = v_NewReceivedTotal,
+            Item_Status = CASE
+                WHEN v_NewReceivedTotal >=
+                     IFNULL(Ordered_Quantity, 0)
+                    THEN 'Received'
+                ELSE 'Partially-Received'
+            END
+        WHERE ItemToOrder_ID = NEW.ItemToOrder_ID;
+    END IF;
+
+    -- 5. Update product stock using good units only
+    IF v_ReceivedDiff <> 0 THEN
+
+        UPDATE product
+        SET UnitsOrdered = GREATEST(
+            IFNULL(UnitsOrdered, 0) + v_ReceivedDiff,
+            0
+        )
+        WHERE Product_ID = NEW.Product_ID;
+
+        SELECT
+            IFNULL(UnitsOrdered, 0) - IFNULL(UnitSold, 0)
+        INTO v_NewInventory
+        FROM product
+        WHERE Product_ID = NEW.Product_ID;
+
+        SET new_status = CASE
+            WHEN v_NewInventory > 10 THEN 'IN-STOCK'
+            WHEN v_NewInventory > 0 THEN 'LOW-STOCK'
+            ELSE 'OUT-OF-STOCK'
+        END;
+
+        UPDATE inventory
+        SET
+            UnitIN = COALESCE(
+                NEW.Date_Received,
+                CURRENT_TIMESTAMP
+            ),
+            Inventory = v_NewInventory,
+            Status = new_status,
+            ExpirationDate = CASE
+                WHEN ExpirationDate IS NULL
+                    THEN NEW.ExpirationDate
+                WHEN NEW.ExpirationDate IS NULL
+                    THEN ExpirationDate
+                WHEN NEW.ExpirationDate < ExpirationDate
+                    THEN NEW.ExpirationDate
+                ELSE ExpirationDate
+            END
+        WHERE Product_ID = NEW.Product_ID;
+
+        -- Removed the legacy product.Supplier_ID update.
+        -- Supplier selection is handled by product_supplier.
+    END IF;
+
+    -- 6. Create or update expiration batches for good units only
+    IF v_ReceivedDiff > 0
+       AND NEW.ExpirationDate IS NOT NULL THEN
+
+        SELECT COUNT(*) + 1
+        INTO v_BatchCount
+        FROM expiration
+        WHERE Product_ID = NEW.Product_ID;
+
+        SET v_BatchNum = CONCAT(
+            'BATCH-',
+            NEW.Product_ID,
+            '-',
+            LPAD(v_BatchCount, 3, '0')
+        );
+
+        IF EXISTS (
+            SELECT 1
+            FROM expiration
+            WHERE Product_ID = NEW.Product_ID
+              AND ExpirationDate = NEW.ExpirationDate
+        ) THEN
+
+            UPDATE expiration
+            SET Quantity = GREATEST(
+                IFNULL(Quantity, 0) + v_ReceivedDiff,
+                0
+            )
+            WHERE Product_ID = NEW.Product_ID
+              AND ExpirationDate = NEW.ExpirationDate;
+
+        ELSE
+
+            INSERT INTO expiration (
+                Product_ID,
+                BatchNum,
+                ExpirationDate,
+                Quantity
+            )
+            VALUES (
+                NEW.Product_ID,
+                v_BatchNum,
+                NEW.ExpirationDate,
+                v_ReceivedDiff
+            );
+
+        END IF;
+    END IF;
+
+END
