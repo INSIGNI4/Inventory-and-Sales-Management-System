@@ -85,16 +85,7 @@ $products = getProducts();
     let productsJson = <?= json_encode($products) ?>;
     var products = {};
 
-    // Map database fields using Product_ID
-    // productsJson.forEach((product) => {
-    //     let pid = product.Product_ID;
-    //     products[pid] = {
-    //         name: product.ProductName,
-    //         stock: parseInt(product.UnitOrdered || 0) - parseInt(product.UnitSold || 0),
-    //         price: parseFloat(product.StorePrice),
-    //         barcode: product.Barcode || ''
-    //     };
-    // });
+ 
 
     productsJson.forEach((product) => {
     let pid = product.Product_ID;

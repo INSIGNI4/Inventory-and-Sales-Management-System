@@ -491,3 +491,33 @@
     max-height: 90vh;
     overflow-y: auto;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Keep the AI recommendation table from expanding to fit long supplier names */
+#aiRecommendationModal table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+/* Keep supplier dropdowns inside their own table cells */
+#aiRecommendationModal .ai-supplier-select {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -3,10 +3,20 @@ let script = function() {
 
     // Store list of order items
     this.orderItems = {};
-    // Store total order amount
+
     this.totalOrderAmount = 0.00;
-    
+
+    // Tax settings loaded from the server
+    this.taxSettings = null;
+    this.taxSettingsLoaded = false;
+
+    // Amounts for the current checkout
+    this.checkoutSubtotal = 0.00;
+    this.checkoutTaxAmount = 0.00;
+    this.checkoutTotalAmount = 0.00;
+
     this.userChange = -1;
+
     //tendered amt
     this.tenderedAmt = 0;
     
@@ -30,6 +40,120 @@ let script = function() {
                 loadScript.dialogError("Database Connection Error.");
             });
     };
+
+
+
+    // REVISION FOR TAX
+
+
+
+        
+    this.loadTaxSettings = function() {
+        return fetch('get_tax_settings.php?t=' + Date.now())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Could not load tax settings.');
+                }
+
+                return response.json();
+            })
+            .then(data => {
+                if (data.status !== 'success' || !data.settings) {
+                    throw new Error(
+                        data.message || 'Invalid tax settings response.'
+                    );
+                }
+
+                const settings = data.settings;
+                const rate = Number(settings.Tax_Rate);
+
+                if (
+                    !Number.isFinite(rate) ||
+                    rate < 0 ||
+                    rate > 100 ||
+                    !['exclusive', 'inclusive'].includes(
+                        String(settings.Tax_Mode).toLowerCase()
+                    )
+                ) {
+                    throw new Error('The saved tax settings are invalid.');
+                }
+
+                this.taxSettings = {
+                    name: String(settings.Tax_Name || 'Tax'),
+                    rate: rate,
+                    mode: String(settings.Tax_Mode).toLowerCase(),
+                    enabled: Number(settings.Is_Enabled) === 1
+                };
+
+                this.taxSettingsLoaded = true;
+
+                console.log('POS tax settings loaded:', this.taxSettings);
+
+                return this.taxSettings;
+            })
+            .catch(error => {
+                this.taxSettingsLoaded = false;
+                console.error('Tax settings error:', error);
+                throw error;
+            });
+    };
+
+
+    this.calculateCheckoutAmounts = function(subtotal) {
+        if (!this.taxSettingsLoaded || !this.taxSettings) {
+            throw new Error('Tax settings are not loaded yet.');
+        }
+
+        const settings = this.taxSettings;
+        let taxAmount = 0;
+        let totalAmount = subtotal;
+
+        if (settings.enabled && settings.rate > 0) {
+            if (settings.mode === 'exclusive') {
+                taxAmount = Math.round(
+                    (subtotal * settings.rate / 100 + Number.EPSILON) * 100
+                ) / 100;
+
+                totalAmount = Math.round(
+                    (subtotal + taxAmount + Number.EPSILON) * 100
+                ) / 100;
+            } else {
+                // Tax is included in the displayed total.
+                taxAmount = Math.round(
+                    (
+                        subtotal * settings.rate /
+                        (100 + settings.rate) + Number.EPSILON
+                    ) * 100
+                ) / 100;
+            }
+        }
+
+        this.checkoutSubtotal = subtotal;
+        this.checkoutTaxAmount = taxAmount;
+        this.checkoutTotalAmount = totalAmount;
+
+        return {
+            subtotal: subtotal,
+            taxName: settings.enabled ? settings.name : '',
+            taxRate: settings.enabled ? settings.rate : 0,
+            taxAmount: taxAmount,
+            total: totalAmount,
+            enabled: settings.enabled,
+            mode: settings.mode
+        };
+    };
+
+
+
+
+
+
+
+
+
+
+
+
     
 
     this.showClock = function() {
@@ -66,53 +190,7 @@ let script = function() {
             am_pm: am_pm
         };
     };
-    // $(document).on('click', '.searchResultEntry', function() {
-    // let pid = $(this).data('pid');
-    // let productObj = window.products ? window.products[pid] : null;
-
-    // if (productObj) {
-    //     // 1. CHECK STOCK FIRST (DO NOT CLEAR SEARCH BAR IF OUT OF STOCK)
-    //     if (productObj.stock <= 0) {
-    //         alert(`Product "${productObj.name}" is Out of Stock.`);
-    //         return; // Stops here, search bar remains filled
-    //     }
-
-    //     // 2. ADD TO IMS ORDER
-    //     if (typeof script !== 'undefined' && script.addToOrder) {
-    //         script.addToOrder(productObj, pid, 1);
-    //     } else if (typeof loadScript !== 'undefined' && loadScript.addToOrder) {
-    //         loadScript.addToOrder(productObj, pid, 1);
-    //     }
-
-    //     // 3. CLEAR SEARCH BAR ONLY AFTER SUCCESSFUL ADDITION
-    //     $('#searchInput').val('');
-    //     $('#searchResultContainerMain').hide();
-    // }
-    // });
-
-    // $(document).on('click', '.searchResultEntry', function() {
-    // let pid = $(this).data('pid');
-    // let productObj = window.products ? window.products[pid] : null;
-
-    // if (productObj) {
-    //     if (productObj.stock <= 0) {
-    //         alert(`Product "${productObj.name}" is Out of Stock.`);
-    //         return;
-    //     }
-
-    //     // Target the active script object instance
-    //     let activeScript = typeof script !== 'undefined' ? script : (typeof loadScript !== 'undefined' ? loadScript : null);
-
-    //     if (activeScript && activeScript.addToOrder) {
-    //         // Adds +1 to existing quantity in IMS instead of overwriting
-    //         activeScript.addToOrder(productObj, pid, 1);
-    //     }
-
-    //     // Clear search box only after successful addition
-    //     $('#searchInput').val('');
-    //     $('#searchResultContainerMain').hide();
-    // }
-    // });
+  
     $(document).on('click', '.searchResultEntry', function(e) {
     e.preventDefault();
     e.stopPropagation(); // Prevents parent containers from blocking the event
@@ -183,6 +261,7 @@ let script = function() {
                 BootstrapDialog.confirm({
                     title: 'Add to Order',
                     type: BootstrapDialog.TYPE_DEFAULT,
+                    cssClass: 'pos-dark-dialog',
                     message: dialogForm,
                     callback: function(addOrder) {
                         if (addOrder) {
@@ -212,6 +291,7 @@ let script = function() {
 
                 BootstrapDialog.confirm({
                     type: BootstrapDialog.TYPE_DANGER,
+                    cssClass: 'pos-dark-dialog',
                     title: `<strong>Delete Order Item</strong>`,
                     message: `Are you sure to delete: <strong>${productInfo['name']}</strong>`,
                     callback: function(toDelete) {
@@ -270,6 +350,48 @@ let script = function() {
                         counter++;
                     }
 
+
+
+
+                    // REVISION FOR TAX
+
+
+                    let checkoutAmounts;
+
+                    try {
+                        checkoutAmounts = loadScript.calculateCheckoutAmounts(totalAmt);
+                    } catch (error) {
+                        loadScript.dialogError(
+                            'Unable to load tax settings. Please try again after refreshing the POS.'
+                        );
+                        console.error(error);
+                        return;
+                    }
+
+                    const formatMoney = value =>
+                        loadScript.addCommas(Number(value).toFixed(2));
+
+            
+
+
+
+
+
+
+                                // REVISION FOR TAX
+                                // <div class="checkoutTotalAmountContainer">\
+                                //     <span class="checkout_amt">\
+                                //         ₱ '+ loadScript.addCommas(totalAmt.toFixed(2)) +' \
+                                //     </span>\
+                                //     <span class="checkout_amt_title">\
+                                //         TOTAL AMOUNT\
+                                //     </span>\
+                                // </div>\
+
+
+
+
+
                     let content ='\
                         <div class="row">\
                             <div class="col-md-7">\
@@ -283,8 +405,26 @@ let script = function() {
                             </div>\
                             <div class="col-md-5">\
                                 <div class="checkoutTotalAmountContainer">\
+                                    <div style="margin: 0; padding: 0;">\
+                                        <div style="display: flex; justify-content: space-between; align-items: center; margin: 0; padding: 4px 0;">\
+                                            <span>Subtotal</span>\
+                                            <span>₱ '+ formatMoney(checkoutAmounts.subtotal) +'</span>\
+                                        </div>\
+                                        '+ (
+                                            checkoutAmounts.enabled
+                                                ? '<div style="display: flex; justify-content: space-between; align-items: center; margin: 0; padding: 4px 0;">' +
+                                                    '<span>' + checkoutAmounts.taxName + ' (' + checkoutAmounts.taxRate + '%)' +
+                                                    (checkoutAmounts.mode === 'inclusive' ? ' — Included' : '') +
+                                                    '</span>' +
+                                                    '<span>₱ ' + formatMoney(checkoutAmounts.taxAmount) + '</span>' +
+                                                '</div>'
+                                                : ''
+                                        ) +'\
+                                    </div>\
+                                    <hr>\
+                                    <hr>\
                                     <span class="checkout_amt">\
-                                        ₱ '+ loadScript.addCommas(totalAmt.toFixed(2)) +' \
+                                        ₱ '+ formatMoney(checkoutAmounts.total) +' \
                                     </span>\
                                     <span class="checkout_amt_title">\
                                         TOTAL AMOUNT\
@@ -301,15 +441,27 @@ let script = function() {
                             </div>\
                         </div>';
 
+
+
+
+
                     BootstrapDialog.confirm({
                         type: BootstrapDialog.TYPE_INFO,
                         title: `<strong>CHECKOUT</strong>`,
-                        cssClass: `checkoutDialog`,
+                        cssClass: 'checkoutDialog pos-dark-dialog',
                         message: content,
                         btnOKLabel: `Checkout`,
                         callback: function(checkout){
                             if(checkout){
-                                if(loadScript.userChange < 0){
+                                // if(loadScript.userChange < 0){
+
+                                // REVISION FOR TAX
+                                if (
+                                    !Number.isFinite(loadScript.tenderedAmt) ||
+                                    loadScript.tenderedAmt < loadScript.checkoutTotalAmount ||
+                                    loadScript.userChange < 0
+                                ) {
+
                                     loadScript.dialogError('Please input correct amount!');
                                     return false; // Fixed: returned false instead of undefined variable 'a'
                                 } 
@@ -349,6 +501,7 @@ let script = function() {
 
                                             BootstrapDialog.alert({
                                                 type: type,
+                                                cssClass: 'pos-dark-dialog',
                                                 title: response.success ? 'Success' : 'Error',
                                                 message: response.message,
 
@@ -381,63 +534,6 @@ let script = function() {
                                     
 
 
-                                    // let modalBody = $('.checkoutDialog');
-                                    // let tenderedInput = parseFloat(modalBody.find('#userAmt').val()) || loadScript.tenderedAmt || 0;
-
-                                    // $.post('product.php?action=checkout', {
-                                    //     data: loadScript.orderItems,
-                                    //     totalAmt: loadScript.totalOrderAmount,
-                                    //     change: loadScript.userChange,
-                                    //     tenderedAmt: tenderedInput,
-                                    //     customer: {
-                                    //         firstName: $('#fName').val(),
-                                    //         lastName: $('#lName').val(),
-                                    //         contact: $('#contact').val(),
-                                    //         address: $('#address').val()
-                                    //     }
-                                    // }, function(response) {
-                                    //     let type = response.success ? BootstrapDialog.TYPE_SUCCESS : BootstrapDialog.TYPE_DANGER;
-
-                                    //     BootstrapDialog.alert({
-                                    //         type: type,
-                                    //         title: response.success ? 'Success' : 'Error',
-                                    //         message: response.message,
-                                    //         callback: function() {
-                                    //             if (response.success) {
-                                    //                 loadScript.resetData(response);
-                                    //             }
-                                    //         }
-                                    //     });
-                                    // }, 'json');
-
-                                    // let tenderedInput = parseFloat(document.getElementById('userAmt').value) || 0;
-                                    // $.post('product.php?action=checkout', {
-                                    //     data: loadScript.orderItems,
-                                    //     totalAmt: loadScript.totalOrderAmount,
-                                    //     change: loadScript.userChange,
-                                    //     tenderedAmt: tenderedInput, // Reads directly from the input field
-                                    //     customer: {
-                                    //         firstName: document.getElementById('fName').value,
-                                    //         lastName: document.getElementById('lName').value,
-                                    //         contact: document.getElementById('contact').value,
-                                    //         address: document.getElementById('address').value,
-                                    //     }
-                                    // },
-                                    // function(response){
-                                    //     let type = response.success ? BootstrapDialog.TYPE_SUCCESS : BootstrapDialog.TYPE_DANGER;
-
-                                    //     BootstrapDialog.alert({
-                                    //         type: type,
-                                    //         title: response.success ? 'Success' : 'Error',
-                                    //         message: response.message,
-                                    //         callback: function(isOk){
-                                    //             if(response.success === true){
-                                    //                 loadScript.resetData(response);
-                                    //             }
-                                    //         }
-                                    //     });
-
-                                    // }, 'json');
                                 }
                             }
                         }
@@ -446,29 +542,6 @@ let script = function() {
             }
         });
 
-        // document.addEventListener('keyup', function(e){
-        //     let targetEl = e.target;
-            
-        //     if(targetEl.id === 'userAmt'){
-        //         if(isNaN(targetEl.value)) {
-        //             targetEl.value = '';
-        //         }
-
-        //         let userAmt = targetEl.value == '' ? 0 : parseFloat(targetEl.value);
-        //         loadScript.tenderedAmt = userAmt;
-
-        //         let change = userAmt - loadScript.totalOrderAmount;
-        //         loadScript.userChange = change;
-
-        //         document.querySelector('.checkoutUserChange .changeAmt')
-        //             .innerHTML = loadScript.addCommas(change.toFixed(2));
-
-        //         let el = document.querySelector('.checkoutUserChange');
-
-        //         if(change < 0) el.classList.add('text-danger');
-        //         else el.classList.remove('text-danger');
-        //     }
-        // });
         document.addEventListener('input', function(e){
             let targetEl = e.target;
             
@@ -477,19 +550,17 @@ let script = function() {
                 // if (isNaN(userAmt)) userAmt = 0;
 
                 loadScript.tenderedAmt = userAmt;
-                let change = userAmt - loadScript.totalOrderAmount;
+                // let change = userAmt - loadScript.totalOrderAmount;
+
+                // REVISION FOR TAX
+                let change = Math.round(
+                    (userAmt - loadScript.checkoutTotalAmount + Number.EPSILON) * 100
+                ) / 100;                
+
+
                 loadScript.userChange = change;
 
-                // let changeEl = document.querySelector('.checkoutUserChange .changeAmt');
-                // if (changeEl) {
-                //     changeEl.innerHTML = loadScript.addCommas(change.toFixed(2));
-                // }
-
-                // let containerEl = document.querySelector('.checkoutUserChange');
-                // if (containerEl) {
-                //     if(change < 0) containerEl.classList.add('text-danger');
-                //     else containerEl.classList.remove('text-danger');
-                // }
+           
 
                 let changeEl = document.querySelector('.checkoutUserChange .changeAmt');
 
@@ -506,42 +577,6 @@ let script = function() {
         });
     };
 
-    // this.resetData = function(response){
-    //     let productsJson = response.products;
-    //     loadScript.products = {};
-
-    //     if (Array.isArray(productsJson)) {
-    //         productsJson.forEach((product) => {
-                
-    //             loadScript.products[product.Product_ID] = {
-                    
-    //                 name: product.ProductName,
-    //                 stock: product.UnitsOrdered -product.UnitSold , // Fixed: referenced product.UnitSold safely
-    //                 price: product.StorePrice
-    //             };
-    //         });
-    //     }
-        
-        
-    //     loadScript.orderItems = {};
-    //     loadScript.totalOrderAmount = 0.00;
-    //     loadScript.userChange = -1;
-    //     loadScript.tenderedAmt = 0;
-        
-        
-        
-
-    //     loadScript.updateOrderItemTable();
-    // // Check all possible key naming conventions returned from PHP
-    //     let receiptId = response.receipt_id || response.sales_id || response.salesId || response.id;
-
-    //     if (receiptId) {
-    //         window.open('pos_receipt.php?receipt_id=' + receiptId, '_blank');
-    //     } else {
-    //         console.error("Missing receipt/sales ID in server response:", response);
-    //         loadScript.dialogError("Checkout completed, but failed to retrieve receipt ID.");
-    //     }
-    // };
 
     this.resetData = function(response) {
     let productsJson = response.products;
@@ -695,6 +730,7 @@ let script = function() {
         BootstrapDialog.alert({
             title: '<strong>Warning!</strong>',
             type: BootstrapDialog.TYPE_DANGER,
+            cssClass: 'pos-dark-dialog',
             message: message
         });
     };
@@ -729,12 +765,34 @@ let script = function() {
         }
     };
 
+    // this.initialize = function() {
+    //     this.loadProductsFromDatabase();
+    //     this.showClock(); 
+    //     setInterval(this.showClock, 1000);
+    //     this.registerEvents();
+    // };
+
+
+    // REVISION FOR TAX
+
+        
     this.initialize = function() {
         this.loadProductsFromDatabase();
-        this.showClock(); 
+
+        this.loadTaxSettings().catch(() => {
+            // Keep checkout blocked until tax settings load successfully.
+            console.error('POS checkout requires valid tax settings.');
+        });
+
+        this.showClock();
         setInterval(this.showClock, 1000);
         this.registerEvents();
     };
+
+
+
+
+
 };
 
 

@@ -1,107 +1,194 @@
-.report-filter {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 25px 0 30px 30px;
-    font-family: "Poppins", sans-serif;
-}
 
-.report-filter label {
-    font-weight: 600;
-    font-size: 16px;
-    color: #333;
-}
-
-.report-filter select {
-    padding: 8px 14px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-    background-color: #fff;
-    cursor: pointer;
-    transition: 0.2s ease;
-}
-
-.report-filter select:hover {
-    border-color: #ffb703;
-}
-
-/* === Report Cards Layout === */
-.report-cards {
+/* Report area */
+#stock-adjustments .report-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
-    gap: 20px;
-    padding: 0 30px 40px 30px;
-    font-family: "Poppins", sans-serif;
+    grid-template-columns: minmax(0, 850px);
+    justify-content: center;
+    align-content: start;
+    padding: 20px 30px 35px;
+    box-sizing: border-box;
 }
 
-.report-card {
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    padding: 20px;
+/* Report type selector inside the report card */
+#stock-adjustments .report-filter {
+    grid-column: 1;
+    grid-row: 1;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    transition: all 0.25s ease;
-}
-
-.report-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
-}
-
-.report-card h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
-    margin: 0;
-}
-
-/* === Export Buttons === */
-.export-buttons {
-    display: flex;
+    flex-wrap: wrap;
     gap: 10px;
+    width: 100%;
+    margin: 0;
+    padding: 22px 28px 16px;
+    box-sizing: border-box;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
 }
 
-.export-btn {
-    padding: 8px 14px;
+#stock-adjustments .report-filter label {
+    color: #1a1a1a !important;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+#stock-adjustments .report-filter select {
+    flex: 1;
+    width: 100%;
+    max-width: 350px;
+    min-height: 40px;
+    padding: 9px 12px;
+    border: 1px solid #ced4da;
     border-radius: 5px;
-    text-decoration: none;
-    font-weight: bold;
+    background: #fff;
+    color: #333;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+#stock-adjustments .report-filter select:focus {
+    border-color: #c0392b;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.12);
+}
+
+/* Report card */
+#stock-adjustments .report-card {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    padding: 28px;
+    box-sizing: border-box;
+    border: 1px solid #dee2e6;
+    border-top: 4px solid #c0392b;
+    border-radius: 0 0 8px 8px;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+#stock-adjustments .report-card h3 {
+    margin: 0 0 8px;
+    color: #023364;
+    font-size: 21px;
+}
+
+#stock-adjustments .report-card p {
+    margin: 0 0 22px;
+    color: #666;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+/* Date and recipient fields */
+#stock-adjustments .report-date-fields {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px 18px;
+    margin: 20px 0;
+    padding: 20px;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    background: #f7f8fa;
+}
+
+#stock-adjustments .report-date-fields label {
+    color: #333;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+#stock-adjustments .report-date-fields input {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 9px 11px;
+    box-sizing: border-box;
+    border: 1px solid #ced4da;
+    border-radius: 5px;
+    background: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+}
+
+/* PDF export button */
+#stock-adjustments .export-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+#stock-adjustments .export-btn.pdf {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 125px;
+    min-height: 42px;
+    padding: 10px 22px;
+    box-sizing: border-box;
+    border: none;
+    border-radius: 5px;
+    background: #c0392b;
     color: #fff;
     font-size: 14px;
-    transition: 0.2s ease;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
-.export-btn.excel {
-    background-color: #4CAF50;
+#stock-adjustments .export-btn.pdf:hover {
+    background: #a93226;
 }
 
-.export-btn.pdf {
-    background-color: #be2a2a;
+/* Hide unselected report cards */
+#stock-adjustments .report-card[hidden] {
+    display: none !important;
 }
 
-.export-btn:hover {
-    opacity: 0.85;
-}
-
-/* === Responsive Behavior === */
-@media (max-width: 768px) {
-    .report-cards {
-        grid-template-columns: 1fr;
-        padding: 0 15px;
+/* Responsive layout */
+@media (max-width: 600px) {
+    #stock-adjustments .top-bar {
+        padding: 8px 12px;
     }
 
-    .report-card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+    #stock-adjustments .report-cards {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 16px 15px 25px;
     }
 
-    .report-filter {
+    #stock-adjustments .report-filter {
+        align-items: stretch;
         flex-direction: column;
-        align-items: flex-start;
-        margin-left: 15px;
+        padding: 18px 15px 15px;
+    }
+
+    #stock-adjustments .report-filter select {
+        max-width: none;
+    }
+
+    #stock-adjustments .report-card {
+        padding: 20px 15px;
+    }
+
+    #stock-adjustments .report-date-fields {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+        padding: 15px;
+    }
+
+    #stock-adjustments .report-date-fields label:not(:first-child) {
+        margin-top: 8px;
+    }
+
+    #stock-adjustments .export-buttons {
+        justify-content: stretch;
+    }
+
+    #stock-adjustments .export-btn.pdf {
+        width: 100%;
     }
 }

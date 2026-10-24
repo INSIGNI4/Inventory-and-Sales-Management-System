@@ -1,153 +1,264 @@
+
 <?php
 ob_start();
 
-include('../connect.php');
-require_once __DIR__ . '/../tcpdf/tcpdf.php';
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 
 date_default_timezone_set('Asia/Manila');
 
-$type = isset($_GET['type']) ? $_GET['type'] : 'daily';
+require_once __DIR__ . '/../connect.php';
+require_once __DIR__ . '/../tcpdf/tcpdf.php';
+require_once __DIR__ . '/report_pdf_helper.php';
 
-$today = date('Y-m-d');
-
-if ($type === 'weekly') {
-    $startDate = date('Y-m-d', strtotime('monday this week'));
-    $endDate = date('Y-m-d', strtotime('sunday this week'));
-    $period = date('F d, Y', strtotime($startDate)) . ' - ' . date('F d, Y', strtotime($endDate));
-} elseif ($type === 'monthly') {
-    $startDate = date('Y-m-01');
-    $endDate = date('Y-m-t');
-    $period = date('F Y');
-} else {
-    $startDate = $today;
-    $endDate = $today;
-    $period = date('F d, Y');
-}
-
-$query = "
-    SELECT
-        st.Sales_ID,
-        st.ReferenceNo,
-        si.Product_ID,
-        si.Quantity,
-        si.`Unit_Price`,
-        si.TotalPrice,
-        si.BatchNum,
-        st.date_created
-    FROM sales_test st
-    INNER JOIN sales_item_test si
-        ON st.Sales_ID = si.Sales_ID
-    WHERE DATE(st.date_created) BETWEEN '$startDate' AND '$endDate'
-    ORDER BY st.date_created DESC
-";
-
-$result = mysqli_query($conn_pos, $query);
-
-$totalTransactions = 0;
-$totalItems = 0;
-$totalSales = 0;
-
-$transactions = [];
-
-if ($result) {
-    while ($row = mysqli_fetch_assoc($result)) {
-        $transactions[] = $row;
-        $totalItems += (int)$row['Quantity'];
-        $totalSales += (float)$row['TotalPrice'];
+try {
+    if (
+        !isset($conn, $conn_pos) ||
+        !($conn instanceof mysqli) ||
+        !($conn_pos instanceof mysqli)
+    ) {
+        throw new RuntimeException('The login or point_of_sale database connection is unavailable.');
     }
-}
 
-$countQuery = "
-    SELECT COUNT(DISTINCT Sales_ID) AS total_transactions
-    FROM sales_test
-    WHERE DATE(date_created) BETWEEN '$startDate' AND '$endDate'
-";
+    $details = reportGetRequestDetails();
+    $dateFrom = $details['date_from'];
+    $dateTo = $details['date_to'];
 
-$countResult = mysqli_query($conn_pos, $countQuery);
+    $summarySql = "
+        SELECT
+            COUNT(*) AS transaction_count,
+            COALESCE(SUM(total_amount), 0) AS total_revenue
+        FROM sales_test
+        WHERE date_created >= ?
+          AND date_created < DATE_ADD(?, INTERVAL 1 DAY)
+    ";
 
-if ($countResult) {
-    $countRow = mysqli_fetch_assoc($countResult);
-    $totalTransactions = (int)$countRow['total_transactions'];
-}
+    $summaryStmt = $conn_pos->prepare($summarySql);
 
-$pdf = new TCPDF();
-$pdf->SetCreator('Inventory and Sales Management System');
-$pdf->SetAuthor('Inventory and Sales Management System');
-$pdf->SetTitle('Sales Summary Report');
+    if (!$summaryStmt) {
+        throw new RuntimeException('Sales summary query preparation failed: ' . $conn_pos->error);
+    }
 
-$pdf->AddPage();
+    $summaryStmt->bind_param('ss', $dateFrom, $dateTo);
 
-$pdf->SetFont('helvetica', 'B', 16);
-$pdf->Cell(0, 10, 'SALES SUMMARY REPORT', 0, 1, 'C');
+    if (!$summaryStmt->execute()) {
+        throw new RuntimeException('Sales summary query execution failed: ' . $summaryStmt->error);
+    }
 
-$pdf->SetFont('helvetica', '', 10);
-$pdf->Cell(0, 7, 'Period: ' . $period, 0, 1, 'C');
+    $summaryResult = $summaryStmt->get_result();
+    $summary = $summaryResult->fetch_assoc();
 
-$pdf->Ln(5);
+    $transactionCount = (int)($summary['transaction_count'] ?? 0);
+    $totalRevenue = (float)($summary['total_revenue'] ?? 0);
 
-$summary = '
-<table border="1" cellpadding="6">
-    <tr>
-        <td width="33%"><b>Total Transactions</b><br>' . $totalTransactions . '</td>
-        <td width="33%"><b>Total Items Sold</b><br>' . $totalItems . '</td>
-        <td width="34%"><b>Total Sales</b><br>PHP ' . number_format($totalSales, 2) . '</td>
-    </tr>
-</table>
-';
+    $summaryResult->free();
+    $summaryStmt->close();
 
-$pdf->SetFont('helvetica', '', 9);
-$pdf->writeHTML($summary, true, false, true, false, '');
+    $unitsSql = "
+        SELECT COALESCE(SUM(si.Quantity), 0) AS total_units
+        FROM sales_item_test si
+        INNER JOIN sales_test sh
+            ON sh.Sales_ID = si.Sales_ID
+        WHERE sh.date_created >= ?
+          AND sh.date_created < DATE_ADD(?, INTERVAL 1 DAY)
+    ";
 
-$pdf->Ln(5);
+    $unitsStmt = $conn_pos->prepare($unitsSql);
 
-$html = '
-<table border="1" cellpadding="4">
-    <tr style="background-color:#f2f2f2;">
-        <th width="14%">Reference No.</th>
-        <th width="11%">Product ID</th>
-        <th width="10%">Quantity</th>
-        <th width="14%">Unit Price</th>
-        <th width="15%">Total Price</th>
-        <th width="13%">Batch No.</th>
-        <th width="23%">Date</th>
-    </tr>
-';
+    if (!$unitsStmt) {
+        throw new RuntimeException('Units sold query preparation failed: ' . $conn_pos->error);
+    }
 
-if (count($transactions) > 0) {
+    $unitsStmt->bind_param('ss', $dateFrom, $dateTo);
 
-    foreach ($transactions as $row) {
+    if (!$unitsStmt->execute()) {
+        throw new RuntimeException('Units sold query execution failed: ' . $unitsStmt->error);
+    }
 
-        $date = !empty($row['date_created'])
-            ? date('M d, Y h:i A', strtotime($row['date_created']))
-            : 'N/A';
+    $unitsResult = $unitsStmt->get_result();
+    $unitsRow = $unitsResult->fetch_assoc();
+    $totalUnits = (float)($unitsRow['total_units'] ?? 0);
 
-        $html .= '
+    $unitsResult->free();
+    $unitsStmt->close();
+
+    $productSql = "
+        SELECT
+            si.Product_ID,
+            COALESCE(p.ProductName, 'Unknown Product') AS ProductName,
+            COALESCE(SUM(si.Quantity), 0) AS UnitsSold,
+            COALESCE(
+                SUM(COALESCE(si.`Unit_Price`, 0) * COALESCE(si.Quantity, 0)),
+                0
+            ) AS ProductRevenue
+        FROM sales_item_test si
+        INNER JOIN sales_test sh
+            ON sh.Sales_ID = si.Sales_ID
+        LEFT JOIN login.product p
+            ON p.Product_ID = si.Product_ID
+        WHERE sh.date_created >= ?
+          AND sh.date_created < DATE_ADD(?, INTERVAL 1 DAY)
+        GROUP BY si.Product_ID, p.ProductName
+        ORDER BY UnitsSold DESC, ProductRevenue DESC
+    ";
+
+    $productStmt = $conn_pos->prepare($productSql);
+
+    if (!$productStmt) {
+        throw new RuntimeException('Product sales query preparation failed: ' . $conn_pos->error);
+    }
+
+    $productStmt->bind_param('ss', $dateFrom, $dateTo);
+
+    if (!$productStmt->execute()) {
+        throw new RuntimeException('Product sales query execution failed: ' . $productStmt->error);
+    }
+
+    $productResult = $productStmt->get_result();
+
+    $productHtml = '
+    <h3>Product Sales Breakdown</h3>
+    <table border="1" cellpadding="4">
+        <tr style="font-weight:bold;background-color:#eeeeee;">
+            <th width="12%">Product ID</th>
+            <th width="48%">Product</th>
+            <th width="20%">Units Sold</th>
+            <th width="20%">Sales Revenue</th>
+        </tr>';
+
+    $productCount = 0;
+
+    while ($row = $productResult->fetch_assoc()) {
+        $productCount++;
+
+        $productHtml .= '
         <tr>
-            <td>' . htmlspecialchars($row['ReferenceNo']) . '</td>
-            <td>' . htmlspecialchars($row['Product_ID']) . '</td>
-            <td>' . htmlspecialchars($row['Quantity']) . '</td>
-            <td>PHP ' . number_format((float)$row['Unit_Price'], 2) . '</td>
-            <td>PHP ' . number_format((float)$row['TotalPrice'], 2) . '</td>
-            <td>' . htmlspecialchars($row['BatchNum'] ?? 'N/A') . '</td>
-            <td>' . $date . '</td>
+            <td>' . reportEscape($row['Product_ID']) . '</td>
+            <td>' . reportEscape($row['ProductName']) . '</td>
+            <td align="right">' . number_format((float)$row['UnitsSold'], 0) . '</td>
+            <td align="right">' . reportMoney($row['ProductRevenue']) . '</td>
         </tr>';
     }
 
-} else {
+    if ($productCount === 0) {
+        $productHtml .= '
+        <tr>
+            <td colspan="4" align="center">No product sales were found for the selected date range.</td>
+        </tr>';
+    }
 
-    $html .= '
-    <tr>
-        <td colspan="7" align="center">
-            No sales found for this period.
-        </td>
-    </tr>';
+    $productHtml .= '</table>';
+
+    $productResult->free();
+    $productStmt->close();
+
+    $dailySql = "
+        SELECT
+            DATE(date_created) AS SalesDate,
+            COUNT(*) AS TransactionCount,
+            COALESCE(SUM(total_amount), 0) AS DailyRevenue
+        FROM sales_test
+        WHERE date_created >= ?
+          AND date_created < DATE_ADD(?, INTERVAL 1 DAY)
+        GROUP BY DATE(date_created)
+        ORDER BY DATE(date_created) ASC
+    ";
+
+    $dailyStmt = $conn_pos->prepare($dailySql);
+
+    if (!$dailyStmt) {
+        throw new RuntimeException('Daily sales query preparation failed: ' . $conn_pos->error);
+    }
+
+    $dailyStmt->bind_param('ss', $dateFrom, $dateTo);
+
+    if (!$dailyStmt->execute()) {
+        throw new RuntimeException('Daily sales query execution failed: ' . $dailyStmt->error);
+    }
+
+    $dailyResult = $dailyStmt->get_result();
+
+    $dailyHtml = '
+    <h3>Daily Sales Summary</h3>
+    <table border="1" cellpadding="4">
+        <tr style="font-weight:bold;background-color:#eeeeee;">
+            <th width="40%">Date</th>
+            <th width="30%">Transactions</th>
+            <th width="30%">Sales Revenue</th>
+        </tr>';
+
+    $dailyCount = 0;
+
+    while ($row = $dailyResult->fetch_assoc()) {
+        $dailyCount++;
+
+        $dailyDate = !empty($row['SalesDate'])
+            ? date('M j, Y', strtotime($row['SalesDate']))
+            : 'N/A';
+
+        $dailyHtml .= '
+        <tr>
+            <td>' . reportEscape($dailyDate) . '</td>
+            <td align="right">' . number_format((int)$row['TransactionCount']) . '</td>
+            <td align="right">' . reportMoney($row['DailyRevenue']) . '</td>
+        </tr>';
+    }
+
+    if ($dailyCount === 0) {
+        $dailyHtml .= '
+        <tr>
+            <td colspan="3" align="center">No sales transactions were found for the selected date range.</td>
+        </tr>';
+    }
+
+    $dailyHtml .= '</table>';
+
+    $dailyResult->free();
+    $dailyStmt->close();
+
+    $html = '
+    <table border="1" cellpadding="6">
+        <tr style="font-weight:bold;background-color:#eeeeee;">
+            <th width="50%">Metric</th>
+            <th width="50%">Value</th>
+        </tr>
+        <tr>
+            <td>Total Sales Revenue</td>
+            <td align="right">' . reportMoney($totalRevenue) . '</td>
+        </tr>
+        <tr>
+            <td>Total Transactions</td>
+            <td align="right">' . number_format($transactionCount) . '</td>
+        </tr>
+        <tr>
+            <td>Total Units Sold</td>
+            <td align="right">' . number_format($totalUnits, 0) . '</td>
+        </tr>
+    </table>
+    <br>' .
+    $productHtml .
+    '<br>' .
+    $dailyHtml .
+    '<br>
+    <p><i>Total sales revenue and transaction count are based on sales headers dated within the selected period. Product sales and units sold are calculated from the corresponding sales items. This report summarizes sales and does not calculate profit.</i></p>';
+
+    reportCreatePdf(
+        'SALES SUMMARY REPORT',
+        $dateFrom,
+        $dateTo,
+        $details['generated_by'],
+        $details['generated_at'],
+        $details['recipient'],
+        $html,
+        'sales_summary_report.pdf'
+    );
+
+} catch (Throwable $e) {
+    error_log('Sales Summary Report Error: ' . $e->getMessage());
+
+    reportFail(
+        'Unable to generate the Sales Summary Report. Check the server error log for details.',
+        500
+    );
 }
-
-$html .= '</table>';
-
-$pdf->writeHTML($html, true, false, true, false, '');
-
-ob_end_clean();
-
-$pdf->Output('sales_summary_report.pdf', 'I');
-?>

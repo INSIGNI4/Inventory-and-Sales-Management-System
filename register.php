@@ -127,11 +127,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->execute();
         $result = $stmt->get_result();
 
+
         if ($result->num_rows > 0) {
             $row = $result->fetch_assoc();
 
-            // Check if account is activated
+            // Check whether the account is active.
+            if ((int)($row['is_active'] ?? 1) !== 1) {
+                echo "<script>
+                    alert('This account has been deactivated. Please contact the administrator.');
+                    window.location.href = 'index.php';
+                </script>";
+                exit();
+            }
+
+            // Check if account is activated.
             if (is_null($row['account_activation_hash'])) {
+
+
+
+
+
+
+        // if ($result->num_rows > 0) {
+        //     $row = $result->fetch_assoc();
+
+        //     // Check if account is activated
+        //     if (is_null($row['account_activation_hash'])) {
 
                 session_start();
 

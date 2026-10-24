@@ -101,7 +101,7 @@ $monthlysalesE = fetchTableData($conn, 'monthly_total_sales');
 
 $analytics = fetchTableData($conn, 'analytics');
 
-$users = fetchTableData($conn, 'users');
+// $users = fetchTableData($conn, 'users');
 
 
 if (!is_array($sales_item_test)) {
@@ -223,9 +223,9 @@ if (!is_array($monthlysalesE)) {
     $monthlysalesE = [];  
 }
 
-if (!is_array($users)) {
-    $users = [];  
-}
+// if (!is_array($users)) {
+//     $users = [];  
+// }
 
 
 
@@ -241,13 +241,28 @@ if(isset($_SESSION['email'])){
 
 
 // Get all users/accounts
-$usersQuery = "SELECT id, userName, email, phone, accountType, image FROM users";
+// $usersQuery = "SELECT id, userName, email, phone, accountType, image FROM users";
+
+//  ACTIVE USER
+$usersQuery = "
+    SELECT id, userName, email, phone, accountType, image
+    FROM users
+    WHERE is_active = 1
+    ORDER BY userName ASC
+";
 
 $usersResult = mysqli_query($conn, $usersQuery);
 
 if (!$usersResult) {
     die("Users query failed: " . mysqli_error($conn));
 }
+// ACTIVE USER
+
+// $usersResult = mysqli_query($conn, $usersQuery);
+
+// if (!$usersResult) {
+//     die("Users query failed: " . mysqli_error($conn));
+// }
 
 
 
@@ -272,6 +287,8 @@ if (!$usersResult) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.0/css/all.min.css">
     <!-- <meta http-equiv="refresh" content="5"> -->
     <link rel="stylesheet" href="ai_recommendation.css">
+
+    <link rel="stylesheet" href="archive_restore.css">
 
 
     <!-- <script>
@@ -306,16 +323,63 @@ if (!$usersResult) {
 
                 <a class="nav-link" onclick="showContentSection('order-restock')">Restock</a>
                 <a class="nav-link has-dropdown" onclick="showContentSection('transaction-sales')">Transaction & Sales</a>
+                <a class="nav-link" onclick="showContentSection('real-stock-adjustments')">Stock Adjustment</a>
 
                 <!-- <a class="nav-link" onclick="showContentSection('sales-aggregation')">Sales Aggregation</a> -->
                 <!-- <a class="nav-link has-dropdown" onclick="showContentSection('forecast-analytics')">Forecast & Analytics</a> -->
 
-                <a class="nav-link" onclick="showContentSection('stock-adjustments')">Stock Adjustments</a>
+                <a class="nav-link" onclick="showContentSection('stock-adjustments')">Reports</a>
+                
                 <a class="nav-link" onclick="showContentSection('account')">Account</a>
+
+
+
+
+                <!-- REVISION TAX SETTING BTN -->
+
+                <?php
+                $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                if (in_array($accountType, ['manager', 'super admin'], true)) {
+                ?>
+                    <!-- <a class="nav-link" onclick="showContentSection('tax-settings')">
+                        Tax Settings
+                    </a> -->
+
+                        
+                    <a class="nav-link" onclick="showContentSection('pricing-markup')">
+                        Pricing &amp; Markup
+                    </a>
+
+
+                    <a class="nav-link" onclick="showContentSection('shift-review')">
+                        Shift Review
+                    </a>
+
+
+                    <a class="nav-link" onclick="showContentSection('archive-restore')">
+                        <i class="fa-solid fa-box-archive"></i> Archive &amp; Restore
+                    </a>
+                <?php } ?>     
+
+               
+                <a class="nav-link" href="POS_TEST/pos_test.php">POS</a>
+
+
+
+
+                
+                
+                
+
+
+
+
+
+
                 
             </div>
             <div class="sidebar-footer">
-                <a class="footer-link" onclick="showContentSection('settings')"><span>⚙️</span> Settings</a>
+                <!-- <a class="footer-link" onclick="showContentSection('settings')"><span>⚙️</span> Settings</a> -->
                 <!-- <a href="logout.php" class="footer-link" ><span>↪</span> Log Out</a> -->
                 <!-- <a href="logout.php" class="footer-link" onclick="return confirmLogout(event)">
                 <span>↪</span> Log Out
@@ -570,36 +634,7 @@ if (!$usersResult) {
                                 </figure>
                             </div>
 
-                            <!-- <div class="topcustomer_dashboard">
-                                <div class="topcustomer_header">
-                                    <h3>Top Customer <br><span>(Week)</span></h3>
-                                </div>
-                                <table class="topcustomer_table">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Order</th>
-                                        </tr>   
-                                    </thead>
-                                    <tbody id="topcustomer-body">
-                                    </tbody>
-                                </table>
-                            </div> -->
-
-                            <!-- <div class="return_dashboard">
-                                <div class="return_header">
-                                    <h3>Return Summary <span id="return-month">(MONTH)</span></h3>
-                                </div>
-                                <div class="return_content">
-                                    <p><b>Returned:</b> <span id="return-count" class="red-text"></span></p>
-                                    <p><b>Most Returned:</b> <span id="return-product"></span></p>  
-                                    <p><b>Reason:</b> <span id="return-reason"></span></p>
-                                </div>
-                                
-                            </div> -->
-
-
-
+                          
 
 
                             <div class="return_dashboard">
@@ -630,15 +665,6 @@ if (!$usersResult) {
                                 </div>
 
                             </div>
-
-
-
-
-
-
-
-
-
 
 
 
@@ -866,10 +892,7 @@ if (!$usersResult) {
                                     </div>
                                 </div>
                             </div>
-                                                        
-
-  
-
+                                      
                             
 
                             <!-- END OF DASHBOARD -->
@@ -915,11 +938,6 @@ if (!$usersResult) {
 
 
 
-
-
-
-
-
                                 <div class="demand_charts">
 
                                     <div class="demand_chart_box">
@@ -947,15 +965,6 @@ if (!$usersResult) {
 
                             </div>
 
-                        <!-- <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> -->
-                        <!-- <script src="dashboardAssets/js/demand_dashboard.js"></script> -->
-                    
-                        <!-- <script src="ml_prediction-main/dashboardAssets/js/demand_dashboard.js"></script>
-                        <script>
-                            loadDemandChart("productChart", "product");
-                            loadDemandChart("categoryChart", "category");
-                            loadDemandChart("trendChart", "trend");
-                        </script> -->
 
                         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -995,10 +1004,6 @@ if (!$usersResult) {
                         </div>
                         <div class="controls-bar">
                             <div class="controls">
-                                <!-- <div class="control-group"><label>📊 Group by:</label><select><option></option></select></div>
-                                <div class="control-group"><label>⇅ Sort by:</label><select><option></option></select></div>
-                                <button class="status-button">STATUS</button> -->
-                                <!-- <div class="stock-info"><span>30</span><span class="in-stock-label">In Stock</span></div> -->
                             </div>
 
                             <div class="header-icons">
@@ -1031,17 +1036,13 @@ if (!$usersResult) {
 
                             <thead class="sticky-div">
                             <tr>
-                                <!-- <th>#</th> -->
+                                
                                 <th>Product Name</th>
                                 <th colspan="2">Location</th>
-                                <!-- <th>Price</th> -->
                                 <th>Inventory</th>
-                                <!-- <th>Unit In</th>
-                                <th>Unit Out</th> -->
                                 <th>Status</th>
-                                <!-- <th>Expiration Date</th> -->
-                                <!-- <th>BarCode</th> -->
                                 <th>Supplier</th>
+                                
                                 
                             </tr>
                             </thead>
@@ -1089,7 +1090,6 @@ if (!$usersResult) {
                         </table>
                     </div>
                 </div>
-                
                 
                 
 
@@ -1212,10 +1212,10 @@ if (!$usersResult) {
                                     </select>
                                     </div>
 
-                                    <label for="Supplier_ID">Choose Supplier ID:</label>
+                                    <!-- <label for="Supplier_ID">Choose Supplier ID:</label>
                                     <select id="Supplier_IDPROD" name="Supplier_ID" class="id-select" style="width: 60%;" required>
                                         <option value="" disabled selected>Loading...</option>
-                                    </select>
+                                    </select> -->
 
                                     <!-- <label>With Expiration? :</label>
                                     <div style="display: flex; justify-content:space-between; align-items:center;">
@@ -1333,10 +1333,10 @@ if (!$usersResult) {
                                     <!-- <label>Supplier ID:</label>
                                     <input type="text" name="Supplier_ID" id="edit-supplierid"> -->
 
-                                    <label for="Supplier_ID">Choose Supplier ID:</label>
+                                    <!-- <label for="Supplier_ID">Choose Supplier ID:</label>
                                     <select id="edit-supplierid" name="Supplier_ID" class="id-select" style="width: 100%;" required>
                                         <option disabled selected>Loading...</option>
-                                    </select>
+                                    </select> -->
                                     
 
                                     <!-- <label>Expiration Date:</label>
@@ -1382,7 +1382,7 @@ if (!$usersResult) {
                                     <th>Price</th>
                                     <!-- <th>Supplier Price</th> -->
                                     <th>Image</th>
-                                    <th>Supplier</th>
+                                    <!-- <th>Supplier</th> -->
                                     <th>Pack Size</th>
                                     <th>Barcode</th>
                                     <th colspan="2">Location</th>
@@ -1410,7 +1410,7 @@ if (!$usersResult) {
                                                 No Image    
                                             <?php endif; ?>
                                         </td>
-                                        <td class="supplier-id-cell"><?= $products['SupplierName']?></td>
+                                        <!-- <td class="supplier-id-cell"><?= $products['SupplierName']?></td> -->
                                         <!-- <td style="color: red;"><?= empty($products['ExpirationDate']) ? '- - - N/A - - -' : date('F d, Y', strtotime($products['ExpirationDate'])) ?></td> -->
                                         <!-- <td><?= date('F d,Y', strtotime($products['ExpirationDate']))?></td> -->
                                         <td><?= $products['Pack_Size']?></td>
@@ -1434,9 +1434,9 @@ if (!$usersResult) {
                                                 data-storeprice="<?= $products['StorePrice'] ?>"
                                                 data-packsize="<?= $products['Pack_Size'] ?>"
                                                 
-                                                data-barcode="<?= $products['Barcode'] ?>"
+                                                data-barcode="<?= $products['Barcode'] ?>">
                                                 
-                                                data-supplierid="<?= $products['Supplier_ID'] ?>">
+                                                <!-- data-supplierid="<?= $products['Supplier_ID'] ?>"> -->
                                                 
                                                 
                                                 📝 Edit
@@ -1501,16 +1501,7 @@ if (!$usersResult) {
                             </div>
                         </div>
                     </div>
-                    <!-- <div class="toolbar">
-                        <?php 
-                        $totalRows = count($supplier);
-                        ?>            
-                        <span id="products-count" class="na-count"><?= $totalRows ?></span>
-                        <span class="na-icon-btn">📝</span>
-                        <span class="na-icon-btn">🗑️</span>
-                        <span class="na-icon-btn">🖨️</span>
-
-                        <button id="sup-add-btn" class="na-btn na-btn-add" type="button">ADD</button> -->
+                    
                                    
 
                     <div class="toolbar sticky-div-2" style="display: flex; justify-content:space-between;">
@@ -1544,46 +1535,7 @@ if (!$usersResult) {
                                 <form id="supplierForm" action="add.php" method="POST">
                                     <input type="hidden" name="table" value="supplier">
 
-                                    <!-- <label>Supplier ID:</label>
-                                    <input type="text" name="Supplier_ID" required> -->
-                                                    
-                                    <!-- <label>Supplier Name:</label>
-                                    <input type="text" name="SupplierName" style="text-transform: uppercase;" required> -->
-                                    <!-- <h5 style="color: black;">Supplier Name</h5>               -->
-
-                                    <!-- 
-                                    <label>Supplier First Name:</label>
-                                    <input type="text" name="SupplierFName" style="text-transform: uppercase;" required>
-
-                                    <label>Supplier Last Name:</label>
-                                    <input type="text" name="SupplierLName" style="text-transform: uppercase;" required>
-
-                                    <label>Location:</label>
-                                    <input type="text" name="Location" style="text-transform: uppercase;"required>
-
-                                    <label>Email:</label>
-                                    <input type="text" name="Email" style="text-transform: lowercase;"required>
-
-                                    <label>Phone Number:</label>
-                                    <input type="number" name="PhoneNumber" required>
-
-
-                                    <label>Offered Products::</label>
-                                    <div style="display: flex; justify-content:space-between; align-items:center;">                   
-                                    
-                                    <select class="shelf-row-select" name="OfferedProductsType" style="width: max-content;" required>
-                                        <option value="NONE">...</option>
-                                        <option value="Noodles and Instant Meals">Noodles and Instant Meals</option>
-                                        <option value="Frozen Hotpot Goods">Frozen Hotpot Goods</option>
-                                        <option value="Side Dishes">Side Dishes</option>
-                                        <option value="Canned Goods">Canned Goods</option>
-                                        <option value="Beverages">Beverages</option>
-                                        <option value="Sweets and Snacks">Sweets and Snacks</option>
-                                        <option value="Ice Cream">Ice Cream</option>
-                                        <option value="Beauty & Personal Care">Beauty & Personal Care</option>
-                                    </select>
-                                
-                                    </div> -->
+                                   
 
 
 
@@ -1683,67 +1635,7 @@ if (!$usersResult) {
                                     <input type="hidden" name="table" value="supplier">
                                     <input type="hidden" name="id" id="edit-supplier-id">
 
-                                    <!-- <label>Supplier First Name:</label>
-                                    <input
-                                        type="text"
-                                        name="SupplierFName"
-                                        id="edit-supplier-fname"
-                                        style="text-transform: uppercase;"
-                                        required
-                                    >
-
-                                    <label>Supplier Last Name:</label>
-                                    <input
-                                        type="text"
-                                        name="SupplierLName"
-                                        id="edit-supplier-lname"
-                                        style="text-transform: uppercase;"
-                                        required
-                                    >
-
-                                    <label>Location:</label>
-                                    <input
-                                        type="text"
-                                        name="Location"
-                                        id="edit-supplier-location"
-                                        style="text-transform: uppercase;"
-                                        required
-                                    >
-
-                                    <label>Email:</label>
-                                    <input
-                                        type="email"
-                                        name="Email"
-                                        id="edit-supplier-email"
-                                        style="text-transform: lowercase;"
-                                        required
-                                    >
-
-                                    <label>Phone Number:</label>
-                                    <input
-                                        type="text"
-                                        name="PhoneNumber"
-                                        id="edit-supplier-phone"
-                                        required
-                                    >
-
-                                    <label>Offered Products:</label>
-                                    <select
-                                        name="OfferedProductsType"
-                                        id="edit-supplier-offered"
-                                        required
-                                    >
-                                        <option value="Noodles and Instant Meals">Noodles and Instant Meals</option>
-                                        <option value="Frozen Hotpot Goods">Frozen Hotpot Goods</option>
-                                        <option value="Side Dishes">Side Dishes</option>
-                                        <option value="Canned Goods">Canned Goods</option>
-                                        <option value="Beverages">Beverages</option>
-                                        <option value="Sweets and Snacks">Sweets and Snacks</option>
-                                        <option value="Ice Cream">Ice Cream</option>
-                                        <option value="Beauty &amp; Personal Care">Beauty &amp; Personal Care</option>
-                                        <option value="NONE">NONE</option>
-                                    </select> -->
-
+                                    
 
 
 
@@ -1857,15 +1749,7 @@ if (!$usersResult) {
                         <table class="suppliers-table">
                            <thead class="sticky-div">
                                 <tr>
-                                    <!-- <th>#</th> -->
-                                    <!-- <th>Supplier ID</th>
-                                    <th>Supplier First Name</th>
-                                    <th>Supplier Last Name</th>
-                                    <th>LOCATION</th>                                    
-                                    <th>Offered Products TYPE</th>
-                                    <th>Email</th>
-                                    <th>Phone Number</th>
-                                    <th class="supplier-action-header" style="display: none;">Action</th> -->
+                                    
                                     <th>Supplier ID</th>
                                     <th>Company Name</th>
                                     <th>Contact Person</th>
@@ -1882,41 +1766,7 @@ if (!$usersResult) {
                                 <?php foreach($supplier as $index => $supplier){ ?>
                                     <tr>
                                         <!-- <td><?= $index + 1?></td> -->
-                                        <!-- <td class="supplier-id-cell"><?= $supplier['Supplier_ID']?></td>
-                                        <td><?= $supplier['SupplierFName']?></td>
-                                        <td><?= $supplier['SupplierLName']?></td>
-                                        <td><?= $supplier['Location']?></td>
                                         
-                                        <td>
-                                            <span class="type-tag-purple">
-                                                <?= htmlspecialchars($supplier['OfferedProductsType'] ?? '') ?>
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <a href="#" class="email-link">
-                                                <?= htmlspecialchars($supplier['Email'] ?? '') ?>
-                                            </a>
-                                        </td>
-
-                                        <td><?= htmlspecialchars($supplier['PhoneNumber'] ?? '') ?></td>
-
-
-                                        <td class="supplier-action-cell" style="display: none;">
-                                            <button
-                                                type="button"
-                                                class="supplier-row-edit-btn na-btn na-btn-add"
-                                                data-id="<?= htmlspecialchars((string)$supplier['Supplier_ID'], ENT_QUOTES, 'UTF-8') ?>"
-                                                data-fname="<?= htmlspecialchars($supplier['SupplierFName'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                data-lname="<?= htmlspecialchars($supplier['SupplierLName'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                data-location="<?= htmlspecialchars($supplier['Location'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                data-email="<?= htmlspecialchars($supplier['Email'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                                data-phone="<?= htmlspecialchars((string)($supplier['PhoneNumber'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                                                data-offered="<?= htmlspecialchars($supplier['OfferedProductsType'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                            >
-                                                📝 Edit
-                                            </button>
-                                        </td> -->
 
 
 
@@ -1971,8 +1821,6 @@ if (!$usersResult) {
                         </table>
                     </div>
                 </div>
-
-                
                 
                 <div id="returns" class="content-section">
                     <div class="custom-header sticky-div-1"  style="background-image: url(topbarlogo.png);background-repeat: no-repeat;background-size: cover;
@@ -2539,11 +2387,6 @@ if (!$usersResult) {
                     </div>
                 </div>
 
-                
-             
-
-
- 
                 <div id="order-restock" class="content-section">
                     <div class="custom-header sticky-div-1" style="background-image: url(topbarlogo.png);background-repeat: no-repeat;background-size: cover; 
                     height: 80px; ">
@@ -2561,13 +2404,7 @@ if (!$usersResult) {
                         <div class="controls-bar">
                              <div class="controls">
                                 <div class="toggle-buttons">
-                                    <!-- <button id="list-restock-btn" class="toggle-btn active">
-                                        List to Order
-                                    </button>
-
-                                    <button id="item-restock-btn" class="toggle-btn">
-                                        Item to Order
-                                    </button> -->
+                                    
 
                                     <button id="receive-restock-btn" class="toggle-btn active">
                                         Item to Receive
@@ -2584,34 +2421,9 @@ if (!$usersResult) {
                             </div>
                         </div>
                     </div>
-                    <!-- <div class="toolbar">
-                        <?php 
-                        $totalRows = count($restock);
-                        ?>
-                    
-                        
-
-                        <span id="products-count" class="na-count"><?= $totalRows ?></span> 
-                        <span class="na-icon-btn">📝</span><span class="na-icon-btn">🗑️</span><span class="na-icon-btn">🖨️</span>
-                        
-                        <button id="order-restock-add-btn" class="na-btn na-btn-add">ADD</button>
-                        <button id="update-restock-status-btn" class="na-btn na-btn-update">UPDATE</button>
-                         -->
-
+                   
                     <div class="toolbar sticky-div-2" style="display: flex; justify-content:space-between;">
-                        <!-- <div>
-                            <?php 
-                            $totalRows = count($restock);
-                            ?>
-
-                            <span id="products-count" class="na-count"><?= $totalRows ?></span>
-                            <button id="edit-restock-btn" class="na-btn na-btn-add1" type="button"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button id="delete-restock-btn" class="na-btn na-btn-add1" type="button"><i class="fa-solid fa-trash"></i></button>
-                            
-                             
-                            <button id="order-restock-add-btn" class="na-btn na-btn-add">ADD</button>
-                            <button id="update-restock-status-btn" class="na-btn na-btn-update">UPDATE</button>
-                        </div> -->
+                        
 
 
 
@@ -2702,7 +2514,7 @@ if (!$usersResult) {
 
                                     <input type="hidden" name="Status" value="Requested">
 
-                                    <div class="modal-buttons">
+                                    <!-- <div class="modal-buttons">
                                         <button type="submit" class="na-btn na-btn-add">
                                             Confirm Order
                                         </button>
@@ -2710,7 +2522,29 @@ if (!$usersResult) {
                                         <button type="button" id="ord-cancel-btn" class="na-btn na-btn-cancel">
                                             Cancel
                                         </button>
+                                    </div> -->
+
+
+
+                                    <div class="restock-order-footer">
+                                        <div class="restock-grand-total">
+                                            <span>GRAND TOTAL</span>
+                                            <strong id="restockGrandTotal">₱0.00</strong>
+                                        </div>
+
+                                        <div class="restock-order-actions">
+                                            <button type="submit" class="na-btn na-btn-add">
+                                                Confirm Order
+                                            </button>
+
+                                            <button type="button" id="ord-cancel-btn" class="na-btn na-btn-cancel">
+                                                Cancel
+                                            </button>                                            
+                                            <!-- Keep your existing Confirm Order button here -->
+                                            <!-- Keep your existing Cancel button here -->
+                                        </div>
                                     </div>
+                                    
 
                                 </form>
                                 <!-- PRODUCT SEARCH POPUP -->
@@ -2783,7 +2617,37 @@ if (!$usersResult) {
 
                                         </div>
 
-                                        <div class="modal-buttons">
+
+                                        <div class="order-confirmation-footer">
+
+                                            <div class="order-confirmation-grand-total">
+                                                <span>GRAND TOTAL</span>
+                                                <strong id="confirmationGrandTotal">₱0.00</strong>
+                                            </div>
+
+                                            <div class="modal-buttons">
+                                                <button
+                                                    type="button"
+                                                    id="backToOrderBtn"
+                                                    class="na-btn na-btn-cancel">
+                                                    Back
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    id="confirmFinalOrderBtn"
+                                                    class="na-btn na-btn-add">
+                                                    Confirm &amp; Place Order
+                                                </button>
+                                            </div>
+
+                                        </div>
+
+
+
+                                        
+
+                                        <!-- <div class="modal-buttons">
 
                                             <button
                                                 type="button"
@@ -2803,7 +2667,7 @@ if (!$usersResult) {
 
                                             </button>
 
-                                        </div>
+                                        </div> -->
 
                                     </div>
 
@@ -3178,135 +3042,7 @@ if (!$usersResult) {
 
                         
                     </div>
-                    <div id="list-restock-table-container" class="table-container order-restock-table-container" style="display:none;">
-                        <table class="order-restock-table">
-                            <thead class="sticky-div">
-                                <tr>
-                                    <th>LIST ORDER ID</th>
-                                    <th>SUPPLIER ID</th>
-                                    <th>ORDER DATE</th>
-                                    <th>EXPECTED RECEIVE</th>
-                                    <th>FORECAST START</th>
-                                    <th>FORECAST END</th>
-                                    <th>STATUS</th>
-                                    <th>TOTAL AMOUNT</th>
-                                    <th>CREATED BY</th>
-                                    <th>NOTES</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                usort($listToOrder, function ($a, $b) {
-                                    return $b['ListToOrder_ID'] <=> $a['ListToOrder_ID'];
-                                });
-
-                                foreach ($listToOrder as $listOrder) {
-                                ?>
-                                    <tr class="list-order-row" data-id="<?= $listOrder['ListToOrder_ID'] ?>">
-                                        <td><?= htmlspecialchars($listOrder['ListToOrder_ID']) ?></td>
-                                        <td><?= htmlspecialchars($listOrder['Supplier_ID']) ?></td>
-                                        <td><?= !empty($listOrder['Order_Date']) ? date('F d, Y h:i A', strtotime($listOrder['Order_Date'])) : '- - -' ?></td>
-                                        <td><?= !empty($listOrder['Expected_Receive_Date']) ? date('F d, Y h:i A', strtotime($listOrder['Expected_Receive_Date'])) : '- - -' ?></td>
-                                        <td><?= !empty($listOrder['Forecast_Start_Date']) ? date('F d, Y', strtotime($listOrder['Forecast_Start_Date'])) : '- - -' ?></td>
-                                        <td><?= !empty($listOrder['Forecast_End_Date']) ? date('F d, Y', strtotime($listOrder['Forecast_End_Date'])) : '- - -' ?></td>
-                                        <td>
-                                            <span class="status-tag status-<?= strtolower(str_replace(' ', '-', $listOrder['Order_Status'])) ?>">
-                                                <?= htmlspecialchars($listOrder['Order_Status']) ?>
-                                            </span>
-                                        </td>
-                                        <td>₱<?= number_format((float)$listOrder['Total_Amount'], 2) ?></td>
-                                        <td><?= htmlspecialchars($listOrder['Created_By'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($listOrder['Notes'] ?? '') ?></td>
-                                        <td class="action-cell">
-                                            <button style="display:none;" class="edit-list-order-btn"
-                                                data-id="<?= $listOrder['ListToOrder_ID'] ?>">
-                                                📝 Edit
-                                            </button>
-
-                                            <form style="display:none;" action="delete.php" method="POST" class="delete-list-order-form">
-                                                <input type="hidden" name="table" value="list_to_order">
-                                                <input type="hidden" name="id" value="<?= $listOrder['ListToOrder_ID'] ?>">
-                                                <button type="submit" onclick="return confirm('Delete this List to Order?')">
-                                                    🗑️ Delete
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                <?php } ?>
-                            </tbody>
-                        </table>
-
-                    </div>
-
-                    <div id="item-restock-table-container" class="table-container order-restock-table-container" style="display:none;">
-                        <table class="order-restock-table">
-                            <thead class="sticky-div">
-                                <tr>
-                                    <th>ITEM ORDER ID</th>
-                                    <th>LIST ORDER ID</th>
-                                    <th>PRODUCT ID</th>
-                                    <th>SUPPLIER ID</th>
-                                    <th>CURRENT STOCK</th>
-                                    <th>PREDICTED DEMAND</th>
-                                    <th>NET DEMAND</th>
-                                    <th>PACK SIZE</th>
-                                    <th>RECOMMENDED QTY</th>
-                                    <th>ORDERED QTY</th>
-                                    <th>UNIT COST</th>
-                                    <th>LINE TOTAL</th>
-                                    <th>RECEIVED QTY</th>
-                                    <th>STATUS</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                usort($itemToOrder, function ($a, $b) {
-                                    return $b['ItemToOrder_ID'] <=> $a['ItemToOrder_ID'];
-                                });
-
-                                foreach ($itemToOrder as $itemOrder) {
-                                ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($itemOrder['ItemToOrder_ID']) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['ListToOrder_ID']) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Product_ID']) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Supplier_ID'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Current_Stock']) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Predicted_Demand']) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Net_Demand']) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Pack_Size']) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Recommended_Order_Quantity']) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Ordered_Quantity']) ?></td>
-                                        <td>₱<?= number_format((float)$itemOrder['Unit_Cost'], 2) ?></td>
-                                        <td>₱<?= number_format((float)$itemOrder['Line_Total'], 2) ?></td>
-                                        <td><?= htmlspecialchars($itemOrder['Received_Quantity']) ?></td>
-                                        <td>
-                                            <span class="status-tag status-<?= strtolower(str_replace(' ', '-', $itemOrder['Item_Status'])) ?>">
-                                                <?= htmlspecialchars($itemOrder['Item_Status']) ?>
-                                            </span>
-                                            
-                                        </td>
-                                        <td class="action-cell">
-                                            <button style="display:none;" class="edit-item-order-btn"
-                                                data-id="<?= $itemOrder['ItemToOrder_ID'] ?>">
-                                                📝 Edit
-                                            </button>
-
-                                            <form style="display:none;" action="delete.php" method="POST" class="delete-item-order-form">
-                                                <input type="hidden" name="table" value="item_to_order">
-                                                <input type="hidden" name="id" value="<?= $itemOrder['ItemToOrder_ID'] ?>">
-                                                <button type="submit" onclick="return confirm('Delete this Item to Order?')">
-                                                    🗑️ Delete
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                <?php } ?>
-                            </tbody>
-                        </table>
-                    </div>
+ 
 
                     <div id="receive-restock-table-container" class="table-container order-restock-table-container">
                         <table class="order-restock-table">
@@ -3324,8 +3060,8 @@ if (!$usersResult) {
                                     <!-- <th>DELIVERY STATUS</th> -->
                                     <th>DATE RECEIVED</th>
                                     <th>ORDER QTY.</th>
-                                    <th>GOOD</th>
-                                    <th>WITH ISSUE</th>
+                                    <th>RECEIVED</th>
+                                    <!-- <th>WITH ISSUE</th> -->
                                     <!-- <th>EXPIRATION DATE</th> -->
                                     <th>ACTION</th>
                                 </tr>
@@ -3370,15 +3106,6 @@ if (!$usersResult) {
                                                 ID: :<?= htmlspecialchars($restocks['Supplier_ID']) ?>
                                             </small>
                                         </td> -->
-
-
-
-
-
-
-
-
-
 
 
                                         <td class="supplier-info-cell">
@@ -3437,25 +3164,96 @@ if (!$usersResult) {
                                         <td style="color:red;">
                                             <?= empty($restocks['Date_Received']) ? '- - - N/A - - -' : date('F d, Y h:i A', strtotime($restocks['Date_Received'])) ?>
                                         </td>
-                                        <td><?= $restocks['Quantity'] ?></td>
-                                        <td><?= $restocks['TotalReceived'] ?></td>
-                                        <td><?= $restocks['withIssue'] ?></td>
+                                        <!-- <td><?= $restocks['Quantity'] ?></td> -->
+
+
+
+
+                                        <td class="product-info-cell">
+                                            <?php
+                                                $quantity = (int) ($restocks['Quantity'] ?? 0);
+                                                $purchaseUnitCost = $restocks['PurchaseUnitCost'] ?? null;
+                                                $orderCost = $restocks['OrderCost'] ?? null;
+
+                                                $hasPurchaseCost = $purchaseUnitCost !== null
+                                                    && $purchaseUnitCost !== '';
+
+                                                $hasOrderCost = $orderCost !== null
+                                                    && $orderCost !== '';
+                                            ?>
+
+                                            <strong>
+                                                Qty: <?= number_format($quantity) ?>
+                                            </strong>
+
+                                            <br>
+
+                                            
+                                                Unit Cost:
+                                                <?php if ($hasPurchaseCost): ?>
+                                                    
+                                                    <span style="color: green; font-weight: bolder;">₱<?= number_format((float) $purchaseUnitCost, 2) ?></span> 
+                                                <?php else: ?>
+                                                    —
+                                                <?php endif; ?>
+                                            
+
+                                            <br>
+
+                                            
+                                                Order Cost:
+                                                <?php if ($hasOrderCost): ?>
+                                
+                                                    <span style="color: blue; font-weight: bolder;">₱<?= number_format((float) $orderCost, 2) ?></span> 
+                                                <?php else: ?>
+                                                    —
+                                                <?php endif; ?>
+                                            
+                                        </td>
+ 
+                                                    
+                                        <td>
+                                            GOOD:                                        
+                                            <span style="color: green; font-weight: bolder;"><?= $restocks['TotalReceived'] ?></span> 
+                                            <hr>
+                                            ISSUE:
+                                            <span style="color: red; font-weight: bolder;"><?= $restocks['withIssue'] ?></span> 
+                                             
+                                        </td>                    
+
+                                        
                                         <!-- <td>
                                             <?= !empty($restocks['ExpirationDate']) ? date('F d, Y', strtotime($restocks['ExpirationDate'])) : '- - -' ?>
                                         </td> -->
                                         <td class="action-cell">
-                                            <button style="display:none;" class="update-order-btn na-btn na-btn-update"
-                                                data-id="<?= $restocks['Orestock_ID'] ?>"
-                                                data-proof="<?= $restocks['Image'] ?>"
-                                                data-status="<?= $restocks['Status'] ?>"
-                                                data-deliverystatus="<?= $restocks['DeliveryStatus'] ?>"
-                                                
-                                                data-expirationdate="<?= $restocks['ExpirationDate'] ?>"
-                                                data-quantity="<?= $restocks['Quantity'] ?>"
-                                                data-received="<?= $restocks['TotalReceived'] ?>"
-                                                data-issue="<?= $restocks['withIssue'] ?>">
+                                            
+                                            <?php
+                                                $restockStatus = trim($restocks['Status'] ?? '');
+
+                                                $disableUpdate = in_array(
+                                                    $restockStatus,
+                                                    ['Received', 'Partially-Received', 'P-R-With-Issue','Received-With-Issue'],
+                                                    true
+                                                );
+                                            ?>
+
+                                            <button
+                                                type="button"
+                                                style="display:none;"
+                                                class="update-order-btn na-btn na-btn-update"
+                                                data-id="<?= htmlspecialchars((string)$restocks['Orestock_ID'], ENT_QUOTES, 'UTF-8') ?>"
+                                                data-proof="<?= htmlspecialchars((string)($restocks['Image'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                data-status="<?= htmlspecialchars($restockStatus, ENT_QUOTES, 'UTF-8') ?>"
+                                                data-deliverystatus="<?= htmlspecialchars((string)($restocks['DeliveryStatus'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                data-expirationdate="<?= htmlspecialchars((string)($restocks['ExpirationDate'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                                data-quantity="<?= htmlspecialchars((string)$restocks['Quantity'], ENT_QUOTES, 'UTF-8') ?>"
+                                                data-received="<?= htmlspecialchars((string)($restocks['TotalReceived'] ?? 0), ENT_QUOTES, 'UTF-8') ?>"
+                                                data-issue="<?= htmlspecialchars((string)($restocks['withIssue'] ?? 0), ENT_QUOTES, 'UTF-8') ?>"
+                                                <?= $disableUpdate ? 'disabled title="This restock row cannot be updated again."' : '' ?>
+                                            >
                                                 📝 Update
                                             </button>
+
                                         </td>
                                     </tr>
                                 <?php } ?>
@@ -3467,13 +3265,6 @@ if (!$usersResult) {
                                 
 
                 </div>
-
-
-
-
-
-                
-                
 
                 <div id="transaction-sales" class="content-section" >
                     <div class="custom-header sticky-div-1" style="background-image: url(topbarlogo.png);background-repeat: no-repeat;background-size: cover;">
@@ -3514,12 +3305,7 @@ if (!$usersResult) {
                     <div class="toolbar sticky-div-2" style="display: flex; justify-content:space-between;">
                         <div>
 
-                            <!-- <button id="edit-product-btn" class="na-btn na-btn-add1" type="button"><i class="fa-solid fa-pen-to-square"></i></button> -->
-                            <!-- <button id="delete-product-btn" class="na-btn na-btn-add1" type="button"><i class="fa-solid fa-trash"></i></button> -->
-                            <!-- <span class="na-icon-btn">🖨️</span> -->
-                             
-                            <!-- <button id="transaction-add-btn" class="na-btn na-btn-add">ADD</button> -->
-                            <!-- <button id="sales-add-btn" class="na-btn na-btn-add">ADD</button> -->
+                 
                             
                         </div>
 
@@ -3549,55 +3335,19 @@ if (!$usersResult) {
                                 <form id="transactionForm" action="add.php" method="POST">
                                     <input type="hidden" name="table" value="transactions">
 
-                                    <!-- <label>Customer ID:</label>
-                                    <input type="text" name="Customer_ID"> -->
+                                    
 
-                                    <!-- <label for="Customer_IDTRANS">Choose Customer ID:</label>
-                                    <select id="Customer_IDTRANS" name="Customer_ID" class="id-select"  style="width: 60%;"required>
-                                        <option disabled selected>Loading...</option>
-                                    </select> -->
+                                    
 
                                     <label>ReferenceNo:</label>
                                     <input type="number" name="ReferenceNo" required maxlength=11>
 
-                                    <!-- <label>Purchase Type:</label>
-                                    <input type="text" name="PurchaseType" required> -->
-
-                                    <!-- <label>Purchase Type:</label> -->
-                                    <!-- <div style="display: flex; justify-content:space-between; align-items:center;"></div>-->
-                                    <!-- <select class="purchase-type-select" name="PurchaseType" required>
-                                        <option value="">- - - Choose Purchase Type - - -</option>
-                                        <option value="Online">Online</option>
-                                        <option value="Over-the-Counter">Over-the-Counter</option>
-                                        
-
-                                    </select>    --> 
-
-
-
-                                    <!-- <label>Purchase Scope:</label>
-                                    <input type="text" name="PurchaseScope" required> -->
-
-                                    <!-- <label>Product ID:</label>
-                                    <input type="text" name="Product_ID" required> -->
-
-                        <!-- <script src="get_supplierPROD.js" defer></script> -->
-
-                                    <!-- <label for="Product_ID">Choose Product ID:</label>
-                                    <select id="Product_ID" name="Product_ID" class="id-select" required>
-                                        <option disabled selected>Loading...</option>
-                                    </select> -->
+                                    
 
                                     
-                                    <!-- <label>Quantity:</label>
-                                    <input type="number" name="Quantity" required> -->
-                                    
-                                    <!-- <label>Total Sales:</label>
-                                    <p><span id="total-display" style="font-weight:bold; color:green;"></span>PHP 0.00</p>
-                                    <input type="hidden" name="TotalSales" value=""> -->
+                                     
 
-                                    <!-- <label>Payment Method:</label>
-                                    <input type="text" name="PaymentMethod" required> -->
+
 
 
                                     <label>Payment Method:</label>
@@ -3901,561 +3651,560 @@ if (!$usersResult) {
                     </div>
                 </div>    
 
-                <div id="sales-aggregation" class="content-section">
-                    <div class="custom-header" style="background-image: url(topbarlogo.png);background-repeat: no-repeat;background-size: cover;">
-                        <div class="top-bar">
-                            <div class="tab">SALES AGGREGATION</div>
-                            <div class="user-controls">
-                                <div>      
-                                <?php
-                                    echo $row['userName'];   
-                                                         
-                                ?>
-                                </div>
-                                <div class="user-icon">👤</div>
-                                <div class="header-icons">
-                                    <span class="icon-wrapper">🔔<span class="badge">3</span></span>    
-                                    <span class="icon-wrapper">🖨️</span>
-                                    <span class="icon-wrapper" onclick="openCalendarModal()">📅<span class="badge">2</span></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="controls-bar">
-                            <div class="controls">
-                                <div class="control-group"><label>📊 Group by:</label><select></select></div>
-                                <div class="control-group"><label>⇅ Sort by:</label><select><option>TYPE</option></select></div>
-                                <div class="toggle-buttons">
-
-                                    <!-- <button id="byproduct-sales-btn" class="toggle-btn active">By Product</button> -->
-                                    <!-- <button id="entire-sales-btn" class="toggle-btn">Entire</button> -->
-                                    <button id="byproduct-sales-btn" class="toggle-btn active" >By Product Sales</button>
-                                    <button id="entire-sales-btn" class="toggle-btn" >Entire Sales</button>
-
-                                    <!-- <button id="daily-sales-btn" class="toggle-btn">Daily</button>
-                                    <button id="weekly-sales-btn" class="toggle-btn ">Weekly</button>
-                                    <button id="monthly-sales-btn" class="toggle-btn ">Monthly</button> -->
-                                </div>
-                            </div>
-                            <div class="na-quick-search">🔍 Quick Search</div>
-                        </div>
-                    </div>
-                    <div class="toolbar">
-                        
-                        <span class="na-icon-btn">📝</span>
-                        <span class="na-icon-btn">🗑️</span>
-                        <span class="na-icon-btn">🖨️</span>
-                        
-                        <div class="toggle-buttons" id="product-toggle-buttons">
-                            <button id="daily-product-btn" class="toggle-btn active">Daily Product Sales</button>
-                            <button id="weekly-product-btn" class="toggle-btn">Weekly Product Sales</button>
-                            <button id="monthly-product-btn" class="toggle-btn">Monthly Product Sales</button>
-                        </div>
-                        
-                        <div class="toggle-buttons" id="entire-toggle-buttons" style="display: none;">
-                            <button id="daily-entire-btn" class="toggle-btn active">Daily Entire Sales</button>
-                            <button id="weekly-entire-btn" class="toggle-btn">Weekly Entire Sales</button>
-                            <button id="monthly-entire-btn" class="toggle-btn">Monthly Entire Sales</button>
-                        </div>
-                    
-                    
-
-                                 
-                        
-                    </div>
-                    <!-- <button id="daily-sales-btn" class="toggle-btn active" style="display: flex;">Daily</button>
-                    <button id="weekly-sales-btn" class="toggle-btn" style="display: flex;">Weekly</button>
-                    <button id="monthly-sales-btn" class="toggle-btn" style="display: flex;">Monthly</button> -->
-                    <div id="byproduct-view-container" class="table-container" >
-                        <div id="daily-byProduct-view-container" class="table-container">
-                            <table class="sales-aggregation-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Daily Sales ID</th>
-                                        <th>Product ID</th>
-                                        <th>Period Start</th>
-                                        <th>Period End</th>
-                                        <th>Total Sales</th>
-                                        <th>Total Quantity</th>
-                                    </tr>
-
-
-                                </thead>
-                                <tbody>
-
-
-                                    <?php foreach($dailysalesP as $index => $dailysalesP){ ?>
-                                        <tr>
-                                            <td><?= $index + 1?></td>
-                                            <td><?= $dailysalesP['DailySales_ID'] ?></td>
-                                            <!-- <td><span class="period-tag period-daily"><?= $salesaggregration['PeriodType'] ?></span></td> -->
-                                            <!-- <td><span class="period-tag period-<?= strtolower($monthlysalesP['PeriodType']) ?>">
-                                                                                <?= htmlspecialchars($monthlysalesP['PeriodType']) ?>
-                                                </span>
-                                                
-                                            </td> -->
-                                            <td class="product-id-cell"><?= $dailysalesP['Product_ID'] ?></td>
-                                            <td><?= date('F d,Y', strtotime($dailysalesP['PeriodStart']))?></td>
-                                            <td><?= date('F d,Y', strtotime($dailysalesP['PeriodEnd']))?></td>
-                                            <td>PHP <?= $dailysalesP['TotalSales'] ?></td>
-                                            <td><?= $dailysalesP['TotalQuantity'] ?></td>
-                                        </tr>
-                                    <?php } ?>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div id="weekly-byProduct-view-container" class="table-container" style="display:none;">
-                            <table class="sales-aggregation-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Weekly Sales ID</th>
-                                        <th>Product ID</th>
-                                        <th>Period Start</th>
-                                        <th>Period End</th>
-                                        <th>Total Sales</th>
-                                        <th>Total Quantity</th>
-
-                                    </tr>
-                                </thead>
-                            <tbody>
-
-                                    <?php 
-                                    // echo '<pre>';
-                                    // print_r($monthlysalesP);
-                                    // echo '</pre>';
-                                    
-                                    foreach($weeklysalesP as $index => $weeklysalesP){ ?>
-                                        <tr>
-                                            <td><?= $index + 1?></td>
-                                            <td><?= $weeklysalesP['WeeklySales_ID'] ?></td>
-                                            <!-- <td><span class="period-tag period-daily"><?= $salesaggregration['PeriodType'] ?></span></td> -->
-                                            <!-- <td><span class="period-tag period-<?= strtolower($monthlysalesP['PeriodType']) ?>">
-                                                                                <?= htmlspecialchars($monthlysalesP['PeriodType']) ?>
-                                                </span>
-                                                
-                                            </td> -->
-                                            <td class="product-id-cell"><?= $weeklysalesP['Product_ID'] ?></td>
-                                            <td><?= date('F d,Y', strtotime($weeklysalesP['PeriodStart']))?></td>
-                                            <td><?= date('F d,Y', strtotime($weeklysalesP['PeriodEnd']))?></td>
-                                            <td>PHP <?= $weeklysalesP['TotalSales'] ?></td>
-                                            <td><?= $weeklysalesP['TotalQuantity'] ?></td>
-                                        </tr>
-                                    <?php } ?>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div id="monthly-byProduct-view-container" class="table-container" style="display:none;">
-                            <table class="sales-aggregation-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Monthly Sales ID</th>
-                                        <th>Product ID</th>
-                                        <th>Period Start</th>
-                                        <th>Period End</th>
-                                        <th>Total Sales</th>
-                                        <th>Total Quantity</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach($monthlysalesP as $index => $monthlysalesP){ ?>
-                                        <tr>
-                                            <td><?= $index + 1?></td>
-                                            <td ><?= $monthlysalesP['MonthlySales_ID'] ?></td>
-                                            <!-- <td><span class="period-tag period-daily"><?= $salesaggregration['PeriodType'] ?></span></td> -->
-                                            <!-- <td><span class="period-tag period-<?= strtolower($monthlysalesP['PeriodType']) ?>">
-                                                                                <?= htmlspecialchars($monthlysalesP['PeriodType']) ?>
-                                                </span>
-                                                
-                                            </td> -->
-                                            <td class="product-id-cell"><?= $monthlysalesP['Product_ID'] ?></td>
-                                            <td><?= date('F d,Y', strtotime($monthlysalesP['PeriodStart']))?></td>
-                                            <td><?= date('F d,Y', strtotime($monthlysalesP['PeriodEnd']))?></td>
-                                            <td>PHP <?= $monthlysalesP['TotalSales'] ?></td>
-                                            <td><?= $monthlysalesP['TotalQuantity'] ?></td>
-                                        </tr>
-                                    <?php } ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <!-- ENTIRE -->
-                    <div id="entire-view-container" class="table-container" >                    
-                        <div id="daily-entire-view-container" class="table-container" style="display:none;">
-                            <table class="sales-aggregation-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Daily Sales ID</th>
-                                        
-                                        <th>Period Start</th>
-                                        <th>Period End</th>
-                                        <th>Total Sales</th>
-                                        <th>Total Quantity</th>
-                                    </tr>
-
-
-                                </thead>
-                                <tbody>
-                                    <?php foreach($dailysalesE as $index => $dailysalesE){ ?>
-                                        <tr>
-                                            <td><?= $index + 1?></td>
-                                            <td class="product-id-cell"><?= $dailysalesE['EntireDailySales_ID'] ?></td>
-                                            <td><?= date('F d,Y', strtotime($dailysalesE['PeriodStart']))?></td>
-                                            <td><?= date('F d,Y', strtotime($dailysalesE['PeriodEnd']))?></td>
-                                            <td>PHP <?= $dailysalesE['TotalSales'] ?></td>
-                                            <td><?= $dailysalesE['TotalQuantity'] ?></td>
-                                        </tr>
-                                    <?php } ?>
-
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div id="weekly-entire-view-container" class="table-container" style="display:none;">
-                            <table class="sales-aggregation-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Weekly Sales ID</th>
-                                        
-                                        <th>Period Start</th>
-                                        <th>Period End</th>
-                                        <th>Total Sales</th>
-                                        <th>Total Quantity</th>
-
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach($weeklysalesE as $index => $weeklysalesE){ ?>
-                                        <tr>
-                                            <td><?= $index + 1?></td>
-                                            <td class="product-id-cell"><?= $weeklysalesE['EntireWeeklySales_ID'] ?></td>
-                                            <td><?= date('F d,Y', strtotime($weeklysalesE['PeriodStart']))?></td>
-                                            <td><?= date('F d,Y', strtotime($weeklysalesE['PeriodEnd']))?></td>
-                                            <td>PHP <?= $weeklysalesE['TotalSales'] ?></td>
-                                            <td><?= $weeklysalesE['TotalQuantity'] ?></td>
-                                        </tr>
-                                    <?php } ?>
-
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div id="monthly-entire-view-container" class="table-container" style="display: none;">
-                            <table class="sales-aggregation-table">
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Monthly Sales ID</th>
-                                        
-                                        <th>Period Start</th>
-                                        <th>Period End</th>
-                                        <th>Total Sales</th>
-                                        <th>Total Quantity</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    
-                                    <?php foreach($monthlysalesE as $index => $monthlysalesE){ ?>
-                                        <tr>
-                                            <td><?= $index + 1?></td>
-                                            <td class="product-id-cell"><?= $monthlysalesE['EntireMonthlySales_ID'] ?></td>
-                                            <td><?= date('F d,Y', strtotime($monthlysalesE['PeriodStart']))?></td>
-                                            <td><?= date('F d,Y', strtotime($monthlysalesE['PeriodEnd']))?></td>
-                                            <td>PHP <?= $monthlysalesE['TotalSales'] ?></td>
-                                            <td><?= $monthlysalesE['TotalQuantity'] ?></td>
-                                        </tr>
-                                    <?php } ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
                 
-                        <!-- <link rel="stylesheet" href="assets/add_product.css">
-                        <script src="assets/add_analytics.js" defer></script> -->
-                
-                <link rel="stylesheet" href="assets/add_product.css">
-                <div id="forecast-analytics" class="content-section">
-                    <div class="custom-header" style="background-image: url(topbarlogo.png);background-repeat: no-repeat;background-size: cover;">
-                        <div class="top-bar">
-                            <div class="tab">FORECAST & ANALYTICS</div>
-                            <div class="user-controls">
-                                <div>
-                                    <?php echo $row['userName']; ?>
-                                </div>
-                                <div class="user-icon">👤</div>
-                                <div class="header-icons">
-                                    <span class="icon-wrapper">🔔<span class="badge">3</span></span>
-                                    <span class="icon-wrapper">🖨️</span>
-                                    <span class="icon-wrapper" onclick="openCalendarModal()">📅<span class="badge">2</span></span>
+                    
+                    <div id="stock-adjustments" class="content-section">
+                        <link rel="stylesheet" href="reports/reports-page.css">
+
+                        <div class="custom-header" style="background-image: url(topbarlogo.png); background-repeat: no-repeat; background-size: cover;">
+                            <div class="top-bar">
+                                <div class="tab">Reports</div>
+                                <div class="user-controls">
+                                    <div><?php echo htmlspecialchars($row['userName'] ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <div class="user-icon">👤</div>
                                 </div>
                             </div>
                         </div>
-                        <div class="controls-bar">
-                            <div class="controls">
-                                <div class="control-group"><label>📊 Group by:</label><select></select></div>
-                                <div class="control-group"><label>⇅ Sort by:</label><select><option>DATE</option></select></div>
-                                <div class="toggle-buttons">
-                                    <button id="forecast-view-btn" class="toggle-btn active">Forecast</button>
-                                    <button id="analytics-view-btn" class="toggle-btn">Analytics</button>
+
+                        <div id="report-content" class="report-cards">
+                            <div class="report-filter">
+                                <label for="reportType" style="color: white;">Report Type:</label>
+                                <select id="reportType">
+                                    <option value="historical" selected>Historical Inventory Report</option>
+                                    <option value="sales-profit">Sales and Profit Report</option>
+                                    <option value="sales-summary">Sales Summary Report</option>
+                                    <option value="purchase">Purchase Order Report</option>
+                                    <option value="received">Stock Received Report</option>
+                                    <option value="demand">Demand Forecast &amp; Recommendation</option>
+                                </select>
+                            </div>
+
+                            <div class="report-card report-option" id="historicalReport">
+                                <h3>Historical Inventory Report</h3>
+                                <p>View opening stock, stock received, units sold, returns, pulled-out items, and closing stock.</p>
+                                <div class="report-date-fields">
+                                    <label for="historicalStart">Start Date:</label>
+                                    <input type="date" id="historicalStart">
+                                    <label for="historicalEnd">End Date:</label>
+                                    <input type="date" id="historicalEnd">
+                                    <label for="historicalRecipient">Prepared For (Optional):</label>
+                                    <input type="text" id="historicalRecipient" placeholder="Recipient's name">
+                                </div>
+                                <div class="export-buttons">
+                                    <button type="button" class="export-btn pdf generate-report" data-report="historical">PDF</button>
                                 </div>
                             </div>
-                            <div class="na-quick-search">🔍 Quick Search</div>
-                        </div>
-                    </div>
 
-                    <div class="toolbar">
-                        <input type="checkbox">
-                        <span id="forecast-analytics-count" class="na-count">10</span>
-                        <span class="na-icon-btn">👁️</span>
-                        <span class="na-icon-btn">📝</span>
-                        <span class="na-icon-btn">🗑️</span>
-
-                       
-                    </div>
-
-                    <!-- Forecast view container -->
-                    <div id="forecast-view-container" style="display:flex; flex-direction:column; gap:10px;">
-                        <!-- DAILY FORECAST -->
-                        <div id="forecast-view-container" class="table-container" style="display:block;">
-                            <table class="forecast-table">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>Forecast ID</th>
-                                        <th>Forecast Type</th>
-                                        <th>Product ID</th>
-                                        <th>Forecast Period</th>
-                                        <th>Forecast Start</th>
-                                        <th>Forecast End</th>
-                                        <th>Projected Sales</th>
-                                        <th>Confidence Level</th>
-                                        <!-- <th>Account ID</th> -->
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach($forecast as $index => $forecast){ ?>
-                                        <tr>
-                                            <td><?= $index + 1 ?></td>
-                                            <td class="forecast-id-cell"><?= $forecast['Forecast_ID'] ?></td>
-                                            <td><?= $forecast['ForecastType'] ?></td>
-                                            <td>
-                                                <span class="type-tag-purple">
-                                                    <?= ($forecast['Product_ID'] === null) ? 'All' : $forecast['Product_ID'] ?>
-                                                </span>
-                                            </td>
-                                            <td><?= $forecast['ForecastPeriod'] ?></td>
-                                            <td><?= date('F d,Y', strtotime($forecast['ForecastStart'])) ?></td>
-                                            <td><?= date('F d,Y', strtotime($forecast['ForecastEnd'])) ?></td>
-                                            <td><?= $forecast['ProjectedSales'] ?></td>
-                                            <td><?= $forecast['ConfidenceLevel']?></td>
-                                            <!-- <td><?= $forecast['Account_ID'] ?></td> -->
-                                        </tr>
-                                    <?php } ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-
-                    <!-- Analytics view container -->
-                    <div id="analytics-view-container" style="display:none; flex-direction:column; gap:10px;">
-                        <!-- DAILY ANALYTICS -->
-                        <div id="daily-analytics-view-container" class="table-container" style="display:none;">
-                            <table class="analytics-table">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>Analytics ID</th>
-                                        <th>Forecast ID</th>
-                                        <th>Sales Metrics</th>
-                                        <th>Stock Metrics</th>
-                                        <th>Account ID</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach($analytics as $index => $analytics){ ?>
-                                        <tr>
-                                            <td><?= $index + 1 ?></td>
-                                            <td class="analytics-id-cell"><?= $analytics['AnalyticsID'] ?></td>
-                                            <td class="forecast-id-cell"><?= $analytics['Forecast_ID'] ?></td>
-                                            <td><?= $analytics['SalesMetrics'] ?></td>
-                                            <td class="analytics-id-cell"><?= $analytics['Inventory_ID'] ?></td>
-                                            <td class="forecast-id-cell"><?= $analytics['Account_ID'] ?></td>
-                                        </tr>
-                                    <?php } ?>
-                                </tbody>
-                            </table>
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div id="stock-adjustments" class="content-section">
-                    <link rel="stylesheet" href="reports/reports-page.css">
-                    <div class="custom-header" style="background-image: url(topbarlogo.png);background-repeat: no-repeat;background-size: cover;">
-                        <div class="top-bar">
-                            <div class="tab">Reports</div>
-
-                            <div class="user-controls">
-                                <div>
-                                    <?php echo $row['userName']; ?>
+                            <div class="report-card report-option" id="salesProfitReport" hidden>
+                                <h3>Sales and Profit Report</h3>
+                                <p>View total revenue, estimated product cost, gross profit, and units sold.</p>
+                                <div class="report-date-fields">
+                                    <label for="salesStart">Start Date:</label>
+                                    <input type="date" id="salesStart">
+                                    <label for="salesEnd">End Date:</label>
+                                    <input type="date" id="salesEnd">
+                                    <label for="salesRecipient">Prepared For (Optional):</label>
+                                    <input type="text" id="salesRecipient" placeholder="Recipient's name">
                                 </div>
-
-                                <div class="user-icon">👤</div>
-                            </div>
-                        </div>
-
-                        <div class="report-filter">
-                            <label for="reportType" style="color: white;">Report Type:</label>
-                            <select id="reportType" onchange="updateReportLinks()">
-                                <option value="daily" selected>Daily</option>
-                                <option value="weekly">Weekly</option>
-                                <option value="monthly">Monthly</option>
-                            </select>
-                            </div>
-                        </div>
-
-                    <div id="report-content" class="report-cards">
-                        <div class="report-card">
-                            <h3>Sales Summary</h3>
-                            <div class="export-buttons">
-                                <a href="reports/export_sales_summary_pdf.php?type=daily" class="export-btn pdf report-type-link">PDF</a>
-                            </div>
-                        </div>
-
-                        <div class="report-card">
-                            <h3>Inventory Summary</h3>
-                            <div class="export-buttons">
-                                <a href="reports/export_inventory_summary_pdf.php?type=daily" class="export-btn pdf report-type-link">PDF</a>
-                            </div>
-                        </div>
-
-                        <div class="report-card">
-                            <h3>Product Received</h3>
-                            <div class="export-buttons">
-                                <a href="reports/export_product_received_pdf.php?type=daily" class="export-btn pdf report-type-link">PDF</a>
-                            </div>
-                        </div>
-
-                        <div class="report-card">
-                            <h3>Product Orders</h3>
-                            <div class="export-buttons">
-                                <a href="reports/export_product_orders_pdf.php?type=daily" class="export-btn pdf report-type-link">PDF</a>
-                            </div>
-                        </div>
-
-                        <div class="report-card">
-                            <div>
-                                <h3>
-                                    Demand Forecast & Recommendation
-                                    <span style="font-size: 14px; font-weight: normal;">— 2 Weeks</span>
-                                </h3>
+                                <div class="export-buttons">
+                                    <button type="button" class="export-btn pdf generate-report" data-report="sales-profit">PDF</button>
+                                </div>
                             </div>
 
-                            <div class="export-buttons">
-                                <a href="reports/export_demand_reorder_pdf.php"
-                                class="export-btn pdf">
-                                    PDF
-                                </a>
+                            <div class="report-card report-option" id="salesSummaryReport" hidden>
+                                <h3>Sales Summary Report</h3>
+                                <p>View total sales revenue, transaction count, units sold, product sales, and daily sales totals.</p>
+                                <div class="report-date-fields">
+                                    <label for="summaryStart">Start Date:</label>
+                                    <input type="date" id="summaryStart">
+                                    <label for="summaryEnd">End Date:</label>
+                                    <input type="date" id="summaryEnd">
+                                    <label for="summaryRecipient">Prepared For (Optional):</label>
+                                    <input type="text" id="summaryRecipient" placeholder="Recipient's name">
+                                </div>
+                                <div class="export-buttons">
+                                    <button type="button" class="export-btn pdf generate-report" data-report="sales-summary">PDF</button>
+                                </div>
                             </div>
+
+                            <div class="report-card report-option" id="purchaseReport" hidden>
+                                <h3>Purchase Order Report</h3>
+                                <p>View products ordered, suppliers, order quantities, purchase costs, and order status.</p>
+                                <div class="report-date-fields">
+                                    <label for="purchaseStart">Start Date:</label>
+                                    <input type="date" id="purchaseStart">
+                                    <label for="purchaseEnd">End Date:</label>
+                                    <input type="date" id="purchaseEnd">
+                                    <label for="purchaseRecipient">Prepared For (Optional):</label>
+                                    <input type="text" id="purchaseRecipient" placeholder="Recipient's name">
+                                </div>
+                                <div class="export-buttons">
+                                    <button type="button" class="export-btn pdf generate-report" data-report="purchase">PDF</button>
+                                </div>
+                            </div>
+
+                            <div class="report-card report-option" id="receivedReport" hidden>
+                                <h3>Stock Received Report</h3>
+                                <p>View products received, actual quantities received, suppliers, receiving dates, and received stock value.</p>
+                                <div class="report-date-fields">
+                                    <label for="receivedStart">Start Date:</label>
+                                    <input type="date" id="receivedStart">
+                                    <label for="receivedEnd">End Date:</label>
+                                    <input type="date" id="receivedEnd">
+                                    <label for="receivedRecipient">Prepared For (Optional):</label>
+                                    <input type="text" id="receivedRecipient" placeholder="Recipient's name">
+                                </div>
+                                <div class="export-buttons">
+                                    <button type="button" class="export-btn pdf generate-report" data-report="received">PDF</button>
+                                </div>
+                            </div>
+
+                            <div class="report-card report-option" id="demandReport" hidden>
+                                <h3>Demand Forecast &amp; Recommendation <span style="font-size: 14px; font-weight: normal;">— 2 Weeks</span></h3>
+                                <div class="export-buttons">
+                                    <a href="reports/export_demand_reorder_pdf.php" class="export-btn pdf">PDF</a>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
-                </div>
-                <script>
-                    function updateReportLinks() {
-                        const type = document.getElementById("reportType").value;
-                        const links = document.querySelectorAll(".report-type-link");
 
-                        links.forEach(function(link) {
-                            link.href = link.href.replace(
-                                /type=(daily|weekly|monthly)/,
-                                "type=" + type
-                            );
-                        });
-                    }
-
-                    document.addEventListener("DOMContentLoaded", function() {
+                    <script>
+                    document.addEventListener("DOMContentLoaded", function () {
                         const reportType = document.getElementById("reportType");
-                        const forecastPeriod = document.getElementById("forecastPeriod");
-                        const demandForecastPdf = document.getElementById("demandForecastPdf");
 
-                        updateReportLinks();
+                        const reportCards = {
+                            historical: document.getElementById("historicalReport"),
+                            "sales-profit": document.getElementById("salesProfitReport"),
+                            "sales-summary": document.getElementById("salesSummaryReport"),
+                            purchase: document.getElementById("purchaseReport"),
+                            received: document.getElementById("receivedReport"),
+                            demand: document.getElementById("demandReport")
+                        };
 
-                        reportType.addEventListener("change", updateReportLinks);
+                        reportType.addEventListener("change", function () {
+                            Object.keys(reportCards).forEach(function (type) {
+                                reportCards[type].hidden = type !== reportType.value;
+                            });
+                        });
 
-                        forecastPeriod.addEventListener("change", function() {
-                            demandForecastPdf.href =
-                                "reports/export_demand_reorder_pdf.php?period=" + this.value;
+                        document.querySelectorAll(".generate-report").forEach(function (button) {
+                            button.addEventListener("click", function () {
+                                const report = this.dataset.report;
+                                let startDate;
+                                let endDate;
+                                let recipient;
+                                let url;
+
+                                const fields = {
+                                    historical: {
+                                        start: "historicalStart",
+                                        end: "historicalEnd",
+                                        recipient: "historicalRecipient",
+                                        url: "reports/export_historical_inventory_pdf.php"
+                                    },
+                                    "sales-profit": {
+                                        start: "salesStart",
+                                        end: "salesEnd",
+                                        recipient: "salesRecipient",
+                                        url: "reports/export_sales_profit_pdf.php"
+                                    },
+                                    "sales-summary": {
+                                        start: "summaryStart",
+                                        end: "summaryEnd",
+                                        recipient: "summaryRecipient",
+                                        url: "reports/export_sales_summary_pdf.php"
+                                    },
+                                    purchase: {
+                                        start: "purchaseStart",
+                                        end: "purchaseEnd",
+                                        recipient: "purchaseRecipient",
+                                        url: "reports/export_purchase_pdf.php"
+                                    },
+                                    received: {
+                                        start: "receivedStart",
+                                        end: "receivedEnd",
+                                        recipient: "receivedRecipient",
+                                        url: "reports/export_received_pdf.php"
+                                    }
+                                };
+
+                                const config = fields[report];
+
+                                if (!config) {
+                                    alert("Invalid report selection.");
+                                    return;
+                                }
+
+                                startDate = document.getElementById(config.start).value;
+                                endDate = document.getElementById(config.end).value;
+                                recipient = document.getElementById(config.recipient).value.trim();
+                                url = config.url;
+
+                                if (!startDate || !endDate) {
+                                    alert("Please select both the start date and end date.");
+                                    return;
+                                }
+
+                                if (startDate > endDate) {
+                                    alert("The start date cannot be later than the end date.");
+                                    return;
+                                }
+
+                                url += "?date_from=" + encodeURIComponent(startDate);
+                                url += "&date_to=" + encodeURIComponent(endDate);
+                                url += "&recipient=" + encodeURIComponent(recipient);
+
+                                window.open(url, "_blank");
+                            });
                         });
                     });
-                </script>                
-                 
+                    </script>
+
+                    <!-- END OF REPORTS-->
+                    <script src="reports/daily_reports.js"></script>
+
+
+                    
+                    <div id="real-stock-adjustments" class="content-section">
+                        <link rel="stylesheet" href="dashboardAssets/stock_adjustment.css">
                         
-
-
-                <!-- <div id="stock-adjustments" class="content-section">
-                    <div class="custom-header" style="background-image: url(topbarlogo.png);background-repeat: no-repeat;background-size: cover;">
-                        <div class="top-bar">
-                            <div class="tab">Daily Reports</div>
-                            <div class="user-controls">
-                                <div>      
-                                <?php
-                                    echo $row['userName'];                        
-                                ?>
+                        <div class="custom-header" style="background-image: url(topbarlogo.png); background-repeat: no-repeat; background-size: cover;">
+                            <div class="top-bar">
+                                <div class="tab">Stock Adjustment</div>
+                                <div class="user-controls">
+                                    <div><?php echo htmlspecialchars($row['userName'] ?? '', ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <div class="user-icon">👤</div>
                                 </div>
-                                <div class="user-icon">👤</div>
-
                             </div>
                         </div>
-                        <div class="controls-bar" style="height: 30px;">
-                            <div class="controls">
+
+                        <div class="stock-adjustment-page">
+                            <div class="stock-adjustment-header">
+                                <!-- <h3>Stock Adjustment</h3> -->
+                                <button type="button" class="stock-adjustment-add-btn"
+                                        onclick="openStockAdjustmentForm()">
+                                    + Add Adjustment
+                                </button>
                             </div>
-                        
+
+                            <div id="stockAdjustmentForm" class="stock-adjustment-card" hidden>
+                                <h3>New Stock Adjustment</h3>
+
+                                <form id="stockAdjustmentEntryForm">
+                                    <label for="adjustmentProduct">Product</label>
+                                    <select id="adjustmentProduct" name="product_id" required>
+                                        <option value="">Select a product</option>
+                                    </select>
+
+                                    <label for="adjustmentType">Adjustment Type</label>
+                                    <select id="adjustmentType" name="adjustment_type" required>
+                                        <option value="increase">Add Stock</option>
+                                        <option value="decrease">Deduct Stock</option>
+                                    </select>
+
+                                    <label for="adjustmentBatch">Batch Number</label>
+                                    <select id="adjustmentBatch" name="batch_id" required>
+                                        <option value="">Select a product first</option>
+                                    </select>
+
+                                    <div id="newBatchFields" hidden>
+                                        <label for="adjustmentExpiryDate">Expiry Date</label>
+                                        <input type="date" id="adjustmentExpiryDate" name="expiry_date">
+                                    </div>
+
+                                    <label for="adjustmentQuantity">Quantity</label>
+                                    <input type="number" id="adjustmentQuantity"
+                                        name="quantity" min="1" step="1" required>
+
+                                    <label for="adjustmentReason">Reason</label>
+                                    <select id="adjustmentReason" name="reason" required>
+                                        <option value="">Select Reason</option>
+                                        <option value="Damaged Products">Damaged Products</option>
+                                        <option value="Expired Products">Expired Products</option>
+                                        <option value="Missing Stock">Missing Stock</option>
+                                        <option value="Incorrect Stock Count">Incorrect Stock Count</option>
+                                        <option value="Physical Inventory Correction">Physical Inventory Correction</option>
+                                        <option value="Lost or Stolen Products">Lost or Stolen Products</option>
+                                        <option value="Internal Transfer">Internal Transfer</option>
+                                        <option value="System Error Correction">System Error Correction</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+
+                                    <label for="adjustmentNotes">Notes</label>
+                                    <textarea id="adjustmentNotes" name="notes"
+                                            placeholder="Additional details (optional)"></textarea>
+
+                                    <div id="stockAdjustmentMessage" role="status"></div>
+
+                                    <div class="stock-adjustment-actions">
+                                        <button type="submit" class="stock-adjustment-btn">
+                                            Save Adjustment
+                                        </button>
+                                        <button type="button" class="stock-adjustment-cancel"
+                                                onclick="closeStockAdjustmentForm()">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div class="stock-adjustment-card">
+                                <h3>Adjustment History</h3>
+                                <div class="stock-adjustment-table-wrap">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Product</th>
+                                                <th>Previous Stock</th>
+                                                <th>Change</th>
+                                                <th>New Stock</th>
+                                                <th>Reason</th>
+                                                <th>Adjusted By</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="stockAdjustmentHistory">
+                                            <tr>
+                                                <td colspan="7">Adjustment history will appear here.</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="toolbar" >
-            
-                        <button id="printBtn">🖨️</button>
-                   
-         
-                    </div>
-                    <link rel="stylesheet" href="assets/daily_reports.css">
-                    <div class="report-container">
-                        <div class="report-card">
-                            <div class="report-header">Today's Newly Added Products</div>
-                            <iframe id="pdf1" src="reports/export_newproducts_pdf.php?type=daily"></iframe>
-                        </div>
 
-                        <div class="report-card">
-                            <div class="report-header">Today's Sales</div>
-                            <iframe id="pdf2" src="reports/export_sales_pdf.php?type=daily"></iframe>
-                        </div>
+                    <script>
+                        const stockAdjustmentEndpoint = 'dashboardQuery/stock_adjustments.php';
 
-                        <div class="report-card">
-                            <div class="report-header">Today's Returns</div>
-                            <iframe id="pdf3" src="reports/export_returns_pdf.php?type=daily"></iframe>
-                        </div>
+                        const adjustmentForm = document.getElementById('stockAdjustmentEntryForm');
+                        const adjustmentProduct = document.getElementById('adjustmentProduct');
+                        const adjustmentType = document.getElementById('adjustmentType');
+                        const adjustmentBatch = document.getElementById('adjustmentBatch');
+                        const adjustmentExpiry = document.getElementById('adjustmentExpiryDate');
+                        const newBatchFields = document.getElementById('newBatchFields');
+                        const adjustmentMessage = document.getElementById('stockAdjustmentMessage');
+                        const adjustmentHistory = document.getElementById('stockAdjustmentHistory');
+                        const stockAdjustmentForm = document.getElementById('stockAdjustmentForm');
 
-                        <div class="report-card">
-                            <div class="report-header">Upcoming Restock</div>
-                            <iframe id="pdf4" src="reports/export_restock_pdf.php?type=daily"></iframe>
-                        </div>
-                    </div>
+                        function escapeAdjustmentHTML(value) {
+                            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                                '&': '&amp;',
+                                '<': '&lt;',
+                                '>': '&gt;',
+                                '"': '&quot;',
+                                "'": '&#039;'
+                            })[character]);
+                        }
 
+                        async function adjustmentRequest(url, options = {}) {
+                            const response = await fetch(url, options);
+                            const data = await response.json();
 
-                </div> -->
-                <!-- END OF STOCK ADJUSTMENT -->
-                <script src="reports/daily_reports.js"></script>
+                            if (!response.ok || !data.success) {
+                                throw new Error(data.message || 'Request failed.');
+                            }
+
+                            return data;
+                        }
+
+                        function showAdjustmentMessage(message, success = false) {
+                            adjustmentMessage.textContent = message;
+                            adjustmentMessage.style.color = success ? 'green' : 'red';
+                        }
+
+                        async function openStockAdjustmentForm() {
+                            stockAdjustmentForm.hidden = false;
+                            showAdjustmentMessage('');
+
+                            try {
+                                const data = await adjustmentRequest(
+                                    stockAdjustmentEndpoint + '?action=products'
+                                );
+
+                                adjustmentProduct.innerHTML =
+                                    '<option value="">Select a product</option>';
+
+                                data.products.forEach(product => {
+                                    const option = document.createElement('option');
+                                    option.value = product.Product_ID;
+                                    option.textContent = product.ProductName;
+                                    adjustmentProduct.appendChild(option);
+                                });
+
+                                await loadStockAdjustmentHistory();
+                            } catch (error) {
+                                showAdjustmentMessage(error.message);
+                                console.error('Unable to load products:', error);
+                            }
+                        }
+
+                        function closeStockAdjustmentForm() {
+                            stockAdjustmentForm.hidden = true;
+                            adjustmentForm.reset();
+
+                            adjustmentBatch.innerHTML =
+                                '<option value="">Select a product first</option>';
+
+                            newBatchFields.hidden = true;
+                            adjustmentExpiry.required = false;
+
+                            showAdjustmentMessage('');
+                        }
+
+                        async function loadAdjustmentBatches() {
+                            const productId = adjustmentProduct.value;
+
+                            adjustmentBatch.innerHTML =
+                                '<option value="">Loading batches...</option>';
+
+                            newBatchFields.hidden = true;
+                            adjustmentExpiry.required = false;
+
+                            if (!productId) {
+                                adjustmentBatch.innerHTML =
+                                    '<option value="">Select a product first</option>';
+                                return;
+                            }
+
+                            try {
+                                const data = await adjustmentRequest(
+                                    stockAdjustmentEndpoint + '?action=batches&product_id=' +
+                                    encodeURIComponent(productId)
+                                );
+
+                                adjustmentBatch.innerHTML =
+                                    '<option value="">Select a batch</option>';
+
+                                if (adjustmentType.value === 'increase') {
+                                    const newOption = document.createElement('option');
+                                    newOption.value = 'new';
+                                    newOption.textContent = 'Create New Batch';
+                                    adjustmentBatch.appendChild(newOption);
+                                }
+
+                                data.batches.forEach(batch => {
+                                    const option = document.createElement('option');
+                                    option.value = batch.Expiration_ID;
+                                    option.textContent =
+                                        batch.BatchNum + ' | Expiry: ' + batch.ExpirationDate +
+                                        ' | Quantity: ' + batch.Quantity;
+
+                                    adjustmentBatch.appendChild(option);
+                                });
+                            } catch (error) {
+                                adjustmentBatch.innerHTML =
+                                    '<option value="">Unable to load batches</option>';
+
+                                showAdjustmentMessage(error.message);
+                                console.error('Unable to load batches:', error);
+                            }
+                        }
+
+                        adjustmentProduct.addEventListener('change', loadAdjustmentBatches);
+
+                        adjustmentType.addEventListener('change', async () => {
+                            await loadAdjustmentBatches();
+                        });
+
+                        adjustmentBatch.addEventListener('change', () => {
+                            const isNewBatch = adjustmentBatch.value === 'new';
+
+                            newBatchFields.hidden = !isNewBatch;
+                            adjustmentExpiry.required = isNewBatch;
+
+                            if (!isNewBatch) {
+                                adjustmentExpiry.value = '';
+                            }
+                        });
+
+                        async function loadStockAdjustmentHistory() {
+                            adjustmentHistory.innerHTML =
+                                '<tr><td colspan="7">Loading adjustment history...</td></tr>';
+
+                            try {
+                                const data = await adjustmentRequest(
+                                    stockAdjustmentEndpoint + '?action=history'
+                                );
+
+                                if (!Array.isArray(data.history) || data.history.length === 0) {
+                                    adjustmentHistory.innerHTML =
+                                        '<tr><td colspan="7">No adjustments recorded yet.</td></tr>';
+                                    return;
+                                }
+
+                                adjustmentHistory.innerHTML = data.history.map(item => {
+                                    const change = item.Adjustment_Type === 'increase'
+                                        ? '+' + item.Quantity
+                                        : '-' + item.Quantity;
+
+                                    return `
+                                        <tr>
+                                            <td>${escapeAdjustmentHTML(item.Date_Created)}</td>
+                                            <td>${escapeAdjustmentHTML(item.ProductName)}</td>
+                                            <td>${escapeAdjustmentHTML(item.Previous_Stock)}</td>
+                                            <td>${escapeAdjustmentHTML(change)}</td>
+                                            <td>${escapeAdjustmentHTML(item.New_Stock)}</td>
+                                            <td>${escapeAdjustmentHTML(item.Reason)}</td>
+                                            <td>${escapeAdjustmentHTML(item.User_ID ?? 'System')}</td>
+                                        </tr>
+                                    `;
+                                }).join('');
+                            } catch (error) {
+                                adjustmentHistory.innerHTML =
+                                    '<tr><td colspan="7">Unable to load adjustment history. Check the console for details.</td></tr>';
+
+                                console.error('Stock adjustment history error:', error);
+                            }
+                        }
+
+                        adjustmentForm.addEventListener('submit', async event => {
+                            event.preventDefault();
+
+                            showAdjustmentMessage('Saving adjustment...');
+
+                            const submitButton = adjustmentForm.querySelector(
+                                'button[type="submit"]'
+                            );
+
+                            submitButton.disabled = true;
+
+                            try {
+                                const formData = new FormData(adjustmentForm);
+
+                                const data = await adjustmentRequest(
+                                    stockAdjustmentEndpoint + '?action=save',
+                                    {
+                                        method: 'POST',
+                                        body: formData
+                                    }
+                                );
+
+                                showAdjustmentMessage(
+                                    data.message + ' Total stock: ' +
+                                    data.previous_stock + ' → ' + data.new_stock,
+                                    true
+                                );
+
+                                adjustmentForm.reset();
+                                newBatchFields.hidden = true;
+                                adjustmentExpiry.required = false;
+
+                                await loadAdjustmentBatches();
+                                await loadStockAdjustmentHistory();
+                            } catch (error) {
+                                showAdjustmentMessage(error.message);
+                                console.error('Unable to save stock adjustment:', error);
+                            } finally {
+                                submitButton.disabled = false;
+                            }
+                        });
+
+                        loadStockAdjustmentHistory();
+                    </script>
+                <!--END OF STOCK ADJUSTMENT-->
+
 
                 <!-- ACOUount -->
                 <div id="account" class="content-section">
@@ -4544,6 +4293,8 @@ if (!$usersResult) {
                         
                         
                         <?php if (isset($_SESSION['accountType']) && strtolower(trim($_SESSION['accountType'])) === 'super admin') { ?>
+
+                        
 
                         <div class="users-section">
 
@@ -4750,6 +4501,1670 @@ if (!$usersResult) {
                     </div>
                 </div>
 
+
+
+
+
+
+                <!-- REVISION TAX SETTING -->
+                
+                <?php
+                $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                if (in_array($accountType, ['manager', 'super admin'], true)) {
+                ?>
+                <div id="tax-settings" class="content-section">
+                    <div class="custom-header"
+                        style="background-image:url(topbarlogo.png);
+                                background-repeat:no-repeat;
+                                background-size:cover;
+                                height:80px;">
+                        <div class="top-bar">
+                            <div class="tab">TAX SETTINGS</div>
+                            <div class="user-controls">
+                                <div><?= htmlspecialchars($row['userName'] ?? '') ?></div>
+                                <div class="user-icon">👤</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="max-width:650px; margin:30px auto; padding:25px;
+                                background:#fff; border-radius:12px;
+                                box-shadow:0 3px 12px rgba(0,0,0,.12);">
+
+                        <h2>POS Tax Configuration</h2>
+                        <p style="color:#666;">
+                            Configure how tax is calculated during checkout.
+                        </p>
+
+                        <form id="taxSettingsForm">
+                            <label for="tax-name">Tax Name</label>
+                            <input type="text" id="tax-name" maxlength="50"
+                                required style="width:100%; padding:10px;
+                                margin:6px 0 16px; box-sizing:border-box;">
+
+                            <label for="tax-rate">Tax Rate (%)</label>
+                            <input type="number" id="tax-rate" min="0" max="100"
+                                step="0.01" required
+                                style="width:100%; padding:10px;
+                                margin:6px 0 16px; box-sizing:border-box;">
+
+                            <label for="tax-mode">Tax Mode</label>
+                            <select id="tax-mode" required
+                                    style="width:100%; padding:10px;
+                                    margin:6px 0 16px; box-sizing:border-box;">
+                                <option value="exclusive">
+                                    Exclusive — tax is added to the subtotal
+                                </option>
+                                <option value="inclusive">
+                                    Inclusive — tax is included in the displayed price
+                                </option>
+                            </select>
+
+                            <label style="display:flex; gap:10px; align-items:center;
+                                        margin:10px 0 20px;">
+                                <input type="checkbox" id="tax-enabled">
+                                Enable tax during checkout
+                            </label>
+
+                            <p id="tax-settings-message"
+                            role="status" style="margin:12px 0;"></p>
+
+                            <button type="submit" class="na-btn na-btn-add"
+                                    id="save-tax-settings-btn">
+                                Save Tax Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+
+
+
+
+                
+                <!-- ================= ARCHIVE & RESTORE ================= -->
+                <?php
+                $archiveAccountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                if (in_array($archiveAccountType, ['manager', 'super admin'], true)) {
+                ?>
+
+                <div id="archive-restore" class="content-section">
+
+                    <!-- HEADER: MATCH TRANSACTIONS & SALES -->
+                    <div class="custom-header sticky-div-1"
+                        style="background-image:url('topbarlogo.png'); background-repeat:no-repeat; background-size:cover;">
+
+                        <div class="top-bar">
+                            <div class="tab">ARCHIVE &amp; RESTORE</div>
+
+                            <div class="user-controls">
+                                <div>
+                                    <?php echo htmlspecialchars($row['userName'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
+                                </div>
+                                <div class="user-icon">👤</div>
+                            </div>
+                        </div>
+
+                        <div class="controls-bar">
+                            <div class="controls">
+                                <div class="toggle-buttons" role="tablist">
+                                    <button type="button"
+                                            class="toggle-btn active"
+                                            data-ar-type="product"
+                                            aria-selected="true">
+                                        Products
+                                    </button>
+
+                                    <button type="button"
+                                            class="toggle-btn"
+                                            data-ar-type="supplier"
+                                            aria-selected="false">
+                                        Suppliers
+                                    </button>
+
+                                    <button type="button"
+                                            class="toggle-btn"
+                                            data-ar-type="user"
+                                            aria-selected="false">
+                                        Users
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="header-icons">
+                                <span class="icon-wrapper"
+                                    onclick="openNotifications()"
+                                    title="Notifications">
+                                    <i class="fas fa-envelope"></i>
+                                    <span class="badge">0</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TOOLBAR: MATCH EXISTING TABS -->
+                    <div class="toolbar sticky-div-2"
+                        style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+
+                        <div class="toggle-buttons ar-status-controls">
+                            <button type="button"
+                                    class="toggle-btn active"
+                                    data-ar-status="active">
+                                Active Records
+                            </button>
+
+                            <button type="button"
+                                    class="toggle-btn"
+                                    data-ar-status="archived">
+                                Archived / Deactivated
+                            </button>
+                        </div>
+
+                        <div class="search-container"
+                            style="display:flex; justify-content:flex-end; align-items:center; gap:8px; flex-wrap:wrap;">
+
+                            <input type="text"
+                                id="ar-search"
+                                placeholder="🔍 Quick Search..."
+                                style="padding:8px 12px; border-radius:6px; border:1px solid #ccc; width:250px; max-width:100%;">
+
+                            <button type="button"
+                                    id="ar-refresh-btn"
+                                    class="na-btn na-btn-add1"
+                                    title="Refresh records">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- STATUS MESSAGE -->
+                    <div id="ar-message" class="ar-message" role="status" aria-live="polite" style="color: white;">
+                        Loading records...
+                    </div>
+
+                    <!-- TABLE: USE EXISTING TABLE CONTAINER -->
+                    <div class="table-container ar-table-container">
+                        <table class="transaction-sales-table ar-table">
+                            <thead class="sticky-div">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Record Name</th>
+                                    <th id="ar-details-heading">Category</th>
+                                    <th id="ar-identifier-heading">Barcode</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="ar-table-body">
+                                <tr>
+                                    <td colspan="6" class="ar-empty">Loading records...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+
+                <?php } ?>
+
+
+
+
+
+
+
+
+                                
+                <?php
+                $shiftReviewRole = strtolower(trim($_SESSION['accountType'] ?? ''));
+
+                if (in_array($shiftReviewRole, ['manager', 'super admin'], true)) {
+                ?>
+
+                <div id="shift-review" class="content-section">
+
+                    <!-- Custom Header: matching Pricing & Markup -->
+                    <div class="custom-header sticky-div-1 shift-review-header"
+                        style="background-image:url(topbarlogo.png);
+                                background-repeat:no-repeat;
+                                background-size:cover;">
+
+                        <div class="top-bar">
+                            <div class="tab">CASHIER SHIFT REVIEW</div>
+
+                            <div class="user-controls">
+                                <div><?= htmlspecialchars($row['userName'] ?? '') ?></div>
+                                <div class="user-icon">👤</div>
+                            </div>
+                        </div>
+
+
+                        <div class="controls-bar">
+                            <div class="controls">
+                                <div class="toggle-buttons">
+                                    <button type="button"
+                                        id="closed-shifts-view-btn"
+                                        class="toggle-btn active">
+                                        Closed Shifts
+                                    </button>
+
+                                    <button type="button"
+                                        id="interim-cash-count-view-btn"
+                                        class="toggle-btn">
+                                        Interim Cash Count
+                                    </button>
+                                </div>
+
+                                <!-- <span class="shift-review-subtitle">
+                                    Review cashier shifts, cash reconciliation, and interim pause counts.
+                                </span> -->
+                            </div>
+
+                            <!-- <div class="header-icons">
+                                <span class="icon-wrapper"
+                                    onclick="openNotifications()">
+                                    <i class="fas fa-envelope"></i>
+                                    <span class="badge">0</span>
+                                </span>
+                            </div> -->
+                        </div>
+
+                    </div>
+
+                    <!-- Content padding -->
+                    <div class="shift-review-content">
+
+
+                        <div id="closed-shifts" class="shift-review-tab-content">
+                            <div class="pricing-panel">
+                                <div class="shift-review-panel-heading">
+                                    <div>
+                                        <h3>Shift Records</h3>
+                                        <button type="button"
+                                            class="na-btn na-btn-add"
+                                            id="refresh-shifts-btn">
+                                            <i class="fas fa-sync-alt"></i> Refresh Shifts
+                                        </button>
+                                        <p>
+                                            Review opening float, cash sales, expected cash,
+                                            actual cash, and variance before finalizing a shift.
+                                        </p>
+                                        <span class="shift-review-subtitle">
+                                        Review cashier shifts, cash reconciliation, and finalization.
+                                        </span>
+                                    </div>
+                                </div>
+
+                            </div>     
+                            <br>
+                                            
+                            <div class="pricing-panel" style="padding: 20px;">                            
+
+                                <div id="shift-review-message"
+                                    role="status"
+                                    class="shift-review-message"></div>
+
+                                <div class="shift-review-table-wrapper">
+                                    <table class="products-table"
+                                        id="shift-review-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Shift ID</th>
+                                                <th>Cashier</th>
+                                                <th>Opened</th>
+                                                <th>Closed</th>
+                                                <th>Opening Float</th>
+                                                <th>Cash Sales</th>
+                                                <th>Expected Cash</th>
+                                                <th>Actual Cash</th>
+                                                <th>Variance</th>
+                                                <th>Status</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody id="shift-review-tbody">
+                                            <tr>
+                                                <td colspan="11" class="shift-review-empty">
+                                                    Click Refresh Shifts to load records.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+
+                        <!-- Interim Cash Count tab content -->
+                        <div id="interim-cash-count" class="shift-review-tab-content"
+                            style="display: none;">
+
+                            <div class="pricing-panel">
+                                <div class="shift-review-panel-heading">
+                                    <div>
+                                        <h3>Interim Cash Counts</h3>
+                                        <p>Review cash counts saved when cashiers pause their shifts.</p>
+                                    </div>
+
+                                    <button type="button"
+                                            class="na-btn na-btn-add"
+                                            id="refresh-cash-counts-btn">
+                                        <i class="fas fa-sync-alt"></i> Refresh Counts
+                                    </button>
+                                </div>
+                            </div>
+                            <br>
+
+                            <div class="pricing-panel" style="padding: 20px;">
+                                <div id="cash-count-review-message"
+                                    role="status"
+                                    class="shift-review-message"></div>
+
+                                <div class="shift-review-table-wrapper">
+                                    <table class="products-table" id="cash-count-review-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Count ID</th>
+                                                <th>Shift ID</th>
+                                                <th>Cashier</th>
+                                                <th>Counted At</th>
+                                                <th>Expected Cash</th>
+                                                <th>Actual Cash</th>
+                                                <th>Variance</th>
+                                                <th>Notes</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="cash-count-review-tbody">
+                                            <tr>
+                                                <td colspan="9" style="text-align: center;">
+                                                    Click Refresh Counts to load records.
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+
+
+
+
+                    </div>
+                </div>
+
+                <?php } ?>
+
+
+                <!-- SHIFT REVIEW CLOSED -->
+
+                <script>
+                    (function () {
+                        const refreshButton = document.getElementById('refresh-shifts-btn');
+                        const tbody = document.getElementById('shift-review-tbody');
+                        const message = document.getElementById('shift-review-message');
+
+                        // This script may load on pages where the manager-only section is absent.
+                        if (!refreshButton || !tbody || !message) return;
+
+                        const endpoint = 'POS_TEST/cashier_shift.php';
+
+                        function escapeHtml(value) {
+                            return String(value ?? '').replace(/[&<>"']/g, function (char) {
+                                return {
+                                    '&': '&amp;',
+                                    '<': '&lt;',
+                                    '>': '&gt;',
+                                    '"': '&quot;',
+                                    "'": '&#039;'
+                                }[char];
+                            });
+                        }
+
+                        function money(value) {
+                            return '₱' + Number(value ?? 0).toLocaleString('en-PH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
+
+                        function renderShifts(shifts) {
+                            if (!Array.isArray(shifts) || shifts.length === 0) {
+                                tbody.innerHTML = `
+                                    <tr>
+                                        <td colspan="11" style="text-align:center;">
+                                            No closed shifts found.
+                                        </td>
+                                    </tr>`;
+                                return;
+                            }
+
+                            tbody.innerHTML = shifts.map(function (shift) {
+                                const variance = Number(shift.Cash_Variance ?? 0);
+                                const varianceColor = variance < 0 ? 'red' :
+                                                    variance > 0 ? 'green' : 'inherit';
+
+                                // const action = shift.Status === 'Closed'
+                                //     ? `<button type="button"
+                                //             class="na-btn na-btn-add finalize-shift-btn"
+                                //             data-shift-id="${escapeHtml(shift.Shift_ID)}">
+                                //         Finalize
+                                //     </button>`
+                                //     : '<span>Already finalized</span>';
+
+
+
+
+                                const shiftId = escapeHtml(shift.Shift_ID);
+
+                                const reportButton = `
+                                    <button type="button"
+                                        class="na-btn na-btn-add view-z-report-btn"
+                                        data-shift-id="${shiftId}">
+                                        <i class="fas fa-file-alt"></i> View Report
+                                    </button>`;
+
+                                const finalizeButton = shift.Status === 'Closed'
+                                    ? `<button type="button"
+                                            class="na-btn na-btn-add finalize-shift-btn"
+                                            data-shift-id="${shiftId}">
+                                            <i class="fas fa-check"></i> Finalize
+                                    </button>`
+                                    : '<span>Already finalized</span>';
+
+                                const action = `
+                                    <div style="display:flex;gap:8px;align-items:center;">
+                                        ${reportButton}
+                                        ${finalizeButton}
+                                    </div>`;
+
+
+
+
+
+
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(shift.Shift_ID)}</td>
+                                        <td>${escapeHtml(shift.CashierName || 'Unknown')}</td>
+                                        <td>${escapeHtml(shift.Opened_At || '—')}</td>
+                                        <td>${escapeHtml(shift.Closed_At || '—')}</td>
+                                        <td>${money(shift.Opening_Float)}</td>
+                                        <td>${money(shift.ShiftSales)}</td>
+                                        <td>${money(shift.Expected_Cash)}</td>
+                                        <td>${money(shift.Actual_Cash)}</td>
+                                        <td style="color:${varianceColor};font-weight:bold;">
+                                            ${variance > 0 ? '+' : ''}${money(variance)}
+                                        </td>
+                                        <td>${escapeHtml(shift.Status)}</td>
+                                        <td>${action}</td>
+                                    </tr>`;
+                            }).join('');
+                        }
+
+                        async function loadShifts() {
+                            refreshButton.disabled = true;
+                            message.textContent = 'Loading shifts...';
+
+                            try {
+                                const response = await fetch(
+                                    endpoint + '?action=list_closed&t=' + Date.now(),
+                                    { cache: 'no-store' }
+                                );
+
+                                const result = await response.json();
+
+                                if (!response.ok || !result.success) {
+                                    throw new Error(result.message || 'Unable to load shifts.');
+                                }
+
+                                renderShifts(result.shifts);
+                                message.textContent =
+                                    'Loaded ' + result.shifts.length + ' shift(s).';
+
+                            } catch (error) {
+                                console.error('Shift review loading failed:', error);
+
+                                message.textContent = error.message;
+                                tbody.innerHTML = `
+                                    <tr>
+                                        <td colspan="11" style="text-align:center;color:red;">
+                                            Failed to load shifts. Check the browser console.
+                                        </td>
+                                    </tr>`;
+                            } finally {
+                                refreshButton.disabled = false;
+                            }
+                        }
+
+                        refreshButton.addEventListener('click', loadShifts);
+
+
+                        tbody.addEventListener('click', function (event) {
+                            const button = event.target.closest('.view-z-report-btn');
+
+                            if (!button) return;
+
+                            const shiftId = button.dataset.shiftId;
+
+                            if (!shiftId) {
+                                message.textContent = 'Invalid shift ID.';
+                                return;
+                            }
+
+                            window.open(
+                                'POS_TEST/z_report.php?shift_id=' + encodeURIComponent(shiftId),
+                                '_blank',
+                                'noopener'
+                            );
+                        });
+
+
+
+
+                        // Finalize buttons are created dynamically when the table loads.
+                        tbody.addEventListener('click', async function (event) {
+                            const button = event.target.closest('.finalize-shift-btn');
+                            if (!button) return;
+
+                            const shiftId = button.dataset.shiftId;
+
+                            if (!confirm(
+                                'Finalize cashier shift #' + shiftId + '? This should only be done after reviewing its cash reconciliation.'
+                            )) {
+                                return;
+                            }
+
+                            button.disabled = true;
+                            message.textContent = 'Finalizing shift #' + shiftId + '...';
+
+
+
+                            try {
+                                const body = new URLSearchParams({
+                                    action: 'finalize',
+                                    shift_id: shiftId
+                                });
+
+                                const response = await fetch(endpoint, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded'
+                                    },
+                                    body: body
+                                });
+
+                                const result = await response.json();
+
+                                if (!response.ok || !result.success) {
+                                    throw new Error(result.message || 'Unable to finalize shift.');
+                                }
+
+                                message.textContent = result.message;
+                                await loadShifts();
+
+                            } catch (error) {
+                                console.error('Shift finalization failed:', error);
+                                message.textContent = error.message;
+                                button.disabled = false;
+                            }
+                        });
+                    })();
+                </script>
+
+                <!-- SHIFT REVIEW PAUSED -->
+
+                <script>
+                    (function () {
+                        const closedButton = document.getElementById('closed-shifts-view-btn');
+                        const interimButton = document.getElementById('interim-cash-count-view-btn');
+                        const closedContent = document.getElementById('closed-shifts');
+                        const interimContent = document.getElementById('interim-cash-count');
+
+                        const refreshButton = document.getElementById('refresh-cash-counts-btn');
+                        const tbody = document.getElementById('cash-count-review-tbody');
+                        const message = document.getElementById('cash-count-review-message');
+
+                        const endpoint = 'POS_TEST/cashier_shift.php';
+
+                        // Avoid errors if the manager-only section is not present.
+                        if (
+                            !closedButton || !interimButton ||
+                            !closedContent || !interimContent ||
+                            !refreshButton || !tbody || !message
+                        ) {
+                            return;
+                        }
+
+                        let cashCounts = [];
+
+                        function escapeHtml(value) {
+                            return String(value ?? '').replace(/[&<>"']/g, function (char) {
+                                return {
+                                    '&': '&amp;',
+                                    '<': '&lt;',
+                                    '>': '&gt;',
+                                    '"': '&quot;',
+                                    "'": '&#039;'
+                                }[char];
+                            });
+                        }
+
+                        function money(value) {
+                            return '₱' + Number(value ?? 0).toLocaleString('en-PH', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
+
+                        function showTab(tab) {
+                            const showClosed = tab === 'closed';
+
+                            closedContent.style.display = showClosed ? '' : 'none';
+                            interimContent.style.display = showClosed ? 'none' : '';
+
+                            closedButton.classList.toggle('active', showClosed);
+                            interimButton.classList.toggle('active', !showClosed);
+
+                            if (!showClosed && cashCounts.length === 0) {
+                                loadCashCounts();
+                            }
+                        }
+
+                        closedButton.addEventListener('click', function () {
+                            showTab('closed');
+                        });
+
+                        interimButton.addEventListener('click', function () {
+                            showTab('interim');
+                        });
+
+                        function renderCashCounts(records) {
+                            if (!Array.isArray(records) || records.length === 0) {
+                                tbody.innerHTML = `
+                                    <tr>
+                                        <td colspan="9" style="text-align:center;">
+                                            No interim cash-count records found.
+                                        </td>
+                                    </tr>`;
+                                return;
+                            }
+
+                            tbody.innerHTML = records.map(function (record) {
+                                const variance = Number(record.Cash_Variance ?? 0);
+                                const varianceColor = variance < 0
+                                    ? 'red'
+                                    : variance > 0
+                                        ? 'green'
+                                        : 'inherit';
+
+                                return `
+                                    <tr>
+                                        <td>${escapeHtml(record.Cash_Count_ID)}</td>
+                                        <td>${escapeHtml(record.Shift_ID)}</td>
+                                        <td>${escapeHtml(record.CashierName || 'Unknown')}</td>
+                                        <td>${escapeHtml(record.Counted_At || '—')}</td>
+                                        <td>${money(record.Expected_Cash)}</td>
+                                        <td>${money(record.Actual_Cash)}</td>
+                                        <td style="color:${varianceColor};font-weight:bold;">
+                                            ${variance > 0 ? '+' : ''}${money(variance)}
+                                        </td>
+                                        <td>${escapeHtml(record.Notes || '—')}</td>
+                                        <td>
+                                            <button type="button"
+                                                class="na-btn na-btn-add print-cash-count-btn"
+                                                data-count-id="${escapeHtml(record.Cash_Count_ID)}">
+                                                <i class="fas fa-print"></i> Print
+                                            </button>
+                                        </td>
+                                    </tr>`;
+                            }).join('');
+                        }
+
+                        async function loadCashCounts() {
+                            refreshButton.disabled = true;
+                            message.textContent = 'Loading interim cash counts...';
+
+                            try {
+                                const response = await fetch(
+                                    endpoint + '?action=list_cash_counts&t=' + Date.now(),
+                                    { cache: 'no-store' }
+                                );
+
+                                const result = await response.json();
+
+                                if (!response.ok || !result.success) {
+                                    throw new Error(
+                                        result.message || 'Unable to load interim cash counts.'
+                                    );
+                                }
+
+                                cashCounts = Array.isArray(result.cash_counts)
+                                    ? result.cash_counts
+                                    : [];
+
+                                renderCashCounts(cashCounts);
+
+                                message.textContent =
+                                    'Loaded ' + cashCounts.length + ' interim cash-count record(s).';
+
+                            } catch (error) {
+                                console.error('Cash-count review loading failed:', error);
+
+                                message.textContent = error.message;
+
+                                tbody.innerHTML = `
+                                    <tr>
+                                        <td colspan="9" style="text-align:center;color:red;">
+                                            Failed to load interim cash counts. Check the browser console.
+                                        </td>
+                                    </tr>`;
+                            } finally {
+                                refreshButton.disabled = false;
+                            }
+                        }
+
+                        refreshButton.addEventListener('click', loadCashCounts);
+
+                        // Print one selected cash-count record.
+                        tbody.addEventListener('click', function (event) {
+                            const button = event.target.closest('.print-cash-count-btn');
+
+                            if (!button) return;
+
+                            const countId = button.dataset.countId;
+
+                            const record = cashCounts.find(function (item) {
+                                return String(item.Cash_Count_ID) === String(countId);
+                            });
+
+                            if (!record) {
+                                message.textContent = 'Cash-count record not found. Refresh the table and try again.';
+                                return;
+                            }
+
+                            const variance = Number(record.Cash_Variance ?? 0);
+                            const varianceLabel = variance > 0
+                                ? '+' + money(variance)
+                                : money(variance);
+
+                            const printWindow = window.open(
+                                '',
+                                '_blank',
+                                'width=850,height=700'
+                            );
+
+                            if (!printWindow) {
+                                message.textContent = 'The print window was blocked. Allow pop-ups for this site and try again.';
+                                return;
+                            }
+
+                            const html = `
+                                <!DOCTYPE html>
+                                <html lang="en">
+                                <head>
+                                    <meta charset="UTF-8">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                    <title>Interim Cash Count #${escapeHtml(record.Cash_Count_ID)}</title>
+                                    <style>
+                                        body {
+                                            font-family: Arial, sans-serif;
+                                            color: #222;
+                                            max-width: 760px;
+                                            margin: 35px auto;
+                                            padding: 20px;
+                                        }
+                                        h1 { text-align: center; margin-bottom: 5px; }
+                                        .subtitle { text-align: center; color: #555; margin-bottom: 30px; }
+                                        table { width: 100%; border-collapse: collapse; }
+                                        th, td {
+                                            border: 1px solid #ccc;
+                                            padding: 12px;
+                                            text-align: left;
+                                        }
+                                        th { width: 38%; background: #f3f3f3; }
+                                        .variance { font-weight: bold; }
+                                        .signatures {
+                                            display: flex;
+                                            justify-content: space-between;
+                                            gap: 40px;
+                                            margin-top: 65px;
+                                        }
+                                        .signature {
+                                            flex: 1;
+                                            border-top: 1px solid #333;
+                                            padding-top: 8px;
+                                            text-align: center;
+                                        }
+                                        .print-button {
+                                            margin-top: 25px;
+                                            padding: 10px 18px;
+                                            cursor: pointer;
+                                        }
+                                        @media print {
+                                            body { margin: 0; padding: 10px; }
+                                            .print-button { display: none; }
+                                        }
+                                    </style>
+                                </head>
+                                <body>
+                                    <h1>Interim Cash Count</h1>
+                                    <div class="subtitle">Cashier Shift Review Record</div>
+
+                                    <table>
+                                        <tr>
+                                            <th>Cash Count ID</th>
+                                            <td>${escapeHtml(record.Cash_Count_ID)}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Shift ID</th>
+                                            <td>${escapeHtml(record.Shift_ID)}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Cashier</th>
+                                            <td>${escapeHtml(record.CashierName || 'Unknown')}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Counted At</th>
+                                            <td>${escapeHtml(record.Counted_At || '—')}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Expected Cash</th>
+                                            <td>${money(record.Expected_Cash)}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Actual Cash</th>
+                                            <td>${money(record.Actual_Cash)}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Cash Variance</th>
+                                            <td class="variance">${varianceLabel}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Notes</th>
+                                            <td>${escapeHtml(record.Notes || 'None')}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Confirmed By</th>
+                                            <td>${escapeHtml(record.ConfirmedByName || 'Not recorded')}</td>
+                                        </tr>
+                                    </table>
+
+                                    <div class="signatures">
+                                        <div class="signature">Cashier</div>
+                                        <div class="signature">Manager / Reviewer</div>
+                                    </div>
+
+                                    <button class="print-button" onclick="window.print()">Print Record</button>
+                                </body>
+                                </html>`;
+
+                            printWindow.document.open();
+                            printWindow.document.write(html);
+                            printWindow.document.close();
+
+                            printWindow.onload = function () {
+                                printWindow.focus();
+                                printWindow.print();
+                            };
+                        });
+
+                    })();
+                </script>                
+
+
+
+                <script>
+                    (function () {
+                        const form = document.getElementById('taxSettingsForm');
+                        if (!form) return;
+
+                        const nameInput = document.getElementById('tax-name');
+                        const rateInput = document.getElementById('tax-rate');
+                        const modeInput = document.getElementById('tax-mode');
+                        const enabledInput = document.getElementById('tax-enabled');
+                        const message = document.getElementById('tax-settings-message');
+                        const saveButton = document.getElementById('save-tax-settings-btn');
+
+                        async function loadTaxSettings() {
+                            message.textContent = 'Loading tax settings...';
+
+                            try {
+                                const response = await fetch(
+                                    'POS_TEST/get_tax_settings.php?t=' + Date.now(),
+                                    { cache: 'no-store' }
+                                );
+                                const result = await response.json();
+
+                                if (!response.ok || result.status !== 'success') {
+                                    throw new Error(result.message || 'Unable to load tax settings.');
+                                }
+
+                                const settings = result.settings;
+                                nameInput.value = settings.Tax_Name ?? 'VAT';
+                                rateInput.value = settings.Tax_Rate ?? '0.00';
+                                modeInput.value = settings.Tax_Mode ?? 'exclusive';
+                                enabledInput.checked = Number(settings.Is_Enabled) === 1;
+
+                                message.textContent = 'Tax settings loaded.';
+                            } catch (error) {
+                                message.textContent = error.message;
+                            }
+                        }
+
+                        form.addEventListener('submit', async function (event) {
+                            event.preventDefault();
+
+                            const taxRate = Number(rateInput.value);
+
+                            if (!Number.isFinite(taxRate) || taxRate < 0 || taxRate > 100) {
+                                message.textContent = 'Enter a tax rate from 0 to 100.';
+                                return;
+                            }
+
+                            const payload = {
+                                Tax_Name: nameInput.value.trim(),
+                                Tax_Rate: taxRate,
+                                Tax_Mode: modeInput.value,
+                                Is_Enabled: enabledInput.checked ? 1 : 0
+                            };
+
+                            if (!payload.Tax_Name) {
+                                message.textContent = 'Enter a tax name.';
+                                return;
+                            }
+
+                            if (!confirm('Save these tax settings?')) return;
+
+                            saveButton.disabled = true;
+                            message.textContent = 'Saving...';
+
+                            try {
+                                const response = await fetch('POS_TEST/save_tax_settings.php', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify(payload)
+                                });
+
+                                const result = await response.json();
+
+                                if (!response.ok || result.status !== 'success') {
+                                    throw new Error(result.message || 'Unable to save tax settings.');
+                                }
+
+                                // message.textContent = 'Tax settings saved successfully.';
+                                await loadTaxSettings();
+                                message.textContent = 'Tax settings saved successfully.';
+                            } catch (error) {
+                                message.textContent = error.message;
+                            } finally {
+                                saveButton.disabled = false;
+                            }
+                        });
+
+                        loadTaxSettings();
+                    })();
+                </script>
+                <?php } ?>
+
+
+
+                <!-- REVISION FOR MARK UP -->
+
+
+                <?php
+                $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                if (in_array($accountType, ['manager', 'super admin'], true)) {
+                ?>
+                <div id="pricing-markup" class="content-section">
+
+                                
+
+
+                    <div class="custom-header sticky-div-1"
+                        style="background-image:url(topbarlogo.png);
+                                background-repeat:no-repeat;
+                                background-size:cover;">
+
+                        <div class="top-bar">
+                            <div class="tab">PRICING &amp; MARKUP</div>
+
+                            <div class="user-controls">
+                                <div><?= htmlspecialchars($row['userName'] ?? '') ?></div>
+                                <div class="user-icon">👤</div>
+                            </div>
+                        </div>
+
+                        <div class="controls-bar">
+                            <div class="controls">
+                                <div class="toggle-buttons">
+                                    <button type="button"
+                                            class="toggle-btn active"
+                                            
+                                            data-pricing-tab="rules"
+                                            aria-pressed="true">
+                                        Pricing Rules
+                                    </button>
+
+                                    <button type="button"
+                                            class="toggle-btn"
+                                            data-pricing-tab="suppliers"
+                                            aria-pressed="false">
+                                        Supplier Products
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+
+                        <div style="padding:2px;">
+                            <div id="pricing-rules-panel">
+                                <!-- Keep your existing pricing controls and preview here. -->
+
+                                <div class="pricing-panel">
+                                        <h3>Pricing Rules</h3>
+                                        <p style="color: black;">
+                                            Configure markup percentages and preview suggested selling
+                                            prices using each supplier's purchase price.
+                                        </p>
+                                </div>
+
+                                <div id="pricing-message"
+                                    role="status"
+                                    
+                                    style="margin:15px 0;" hidden>
+                                    <!-- Loading pricing information... -->
+                                    
+                                </div>
+
+                                <div class="pricing-rule-grid">
+                                    <!-- GENERAL MARKUP -->
+                                    <div class="pricing-panel">
+                                        <h3>General Markup</h3>
+                                        <p>Default markup used when no category or product rule exists.</p>
+
+                                        <label for="general-markup">Markup (%)</label>
+                                        <input type="number" id="general-markup"
+                                            min="0" max="10000" step="0.01" value="20">
+
+                                        <button type="button" id="save-general-markup"
+                                                class="na-btn na-btn-add">
+                                            Save General Markup
+                                        </button>
+                                    </div>
+
+                                    <!-- CATEGORY MARKUP -->
+                                    <div class="pricing-panel">
+                                        <h3>Category Markup</h3>
+
+                                        <label for="markup-category">Product Category</label>
+                                        <select id="markup-category">
+                                            <option value="">Select category</option>
+                                        </select>
+
+                                        <label for="category-markup">Markup (%)</label>
+                                        <input type="number" id="category-markup"
+                                            min="0" max="10000" step="0.01">
+
+                                        <button type="button" id="save-category-markup"
+                                                class="na-btn na-btn-add">
+                                            Save Category Markup
+                                        </button>
+                                    </div>
+
+                                    <!-- PRODUCT MARKUP -->
+                                    <div class="pricing-panel">
+                                        <h3>Product-Specific Markup</h3>
+
+                                        <label for="markup-product">Product</label>
+                                        <select id="markup-product">
+                                            <option value="">Select product</option>
+                                        </select>
+
+                                        <label for="product-markup">Markup (%)</label>
+                                        <input type="number" id="product-markup"
+                                            min="0" max="10000" step="0.01">
+
+                                        <button type="button" id="save-product-markup"
+                                                class="na-btn na-btn-add">
+                                            Save Product Markup
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- PRICE PREVIEW -->
+                                <div class="pricing-panel">
+                                    <h3>Supplier Price &amp; Selling Price Preview</h3>
+
+                                    <p>
+                                        Suggested selling price = supplier purchase price
+                                        × (1 + markup percentage ÷ 100).
+                                    </p>
+
+                                    <p>
+                                        The preview does not change the product's current StorePrice.
+                                    </p>
+
+                                    <div style="overflow-x:auto;">
+                                        <table class="products-table" style="width:100%;">
+
+                                            <thead>
+                                                <tr>
+                                                    <th>Supplier</th>
+                                                    <th>Purchase Price</th>
+                                                    <th>Effective Markup</th>
+                                                    <th>Markup Source</th>
+                                                    <th>Current Store Price</th>
+                                                    <th>Suggested Price</th>
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="supplier-price-preview">
+                                                <tr>
+                                                    <td colspan="7">Select a product to preview prices.</td>
+                                                </tr>
+                                            </tbody>
+
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- CURRENT RULES -->
+                                <div class="pricing-panel">
+                                    <h3>Current Markup Rules</h3>
+                                    <div id="pricing-rules-summary">
+                                        No rules loaded.
+                                    </div>
+                                </div>
+                            </div>
+
+
+
+                            <div id="supplier-products-panel" style="display: none;">
+
+                                <div class="pricing-panel supplier-products-intro">
+                                    <h3>Supplier–Product Management</h3>
+                                    <p>
+                                        Link products to their suppliers and maintain each supplier's
+                                        purchase price independently. Updating a purchase price does
+                                        not automatically change the product's selling price.
+                                    </p>
+                                </div>
+
+                                <div class="pricing-panel">
+                                    <h3>Add Supplier Offer</h3>
+
+                                    <form id="supplier-product-form">
+
+                                        <div class="supplier-product-form-grid">
+
+                                            <div class="supplier-product-field">
+                                                <label for="sp-product">Product</label>
+                                                <select id="sp-product" required>
+                                                    <option value="">Select product</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="supplier-product-field">
+                                                <label for="sp-supplier">Supplier</label>
+                                                <select id="sp-supplier" required>
+                                                    <option value="">Select supplier</option>
+                                                </select>
+                                            </div>
+
+                                            <div class="supplier-product-field">
+                                                <label for="sp-price">Purchase Price (₱)</label>
+                                                <input
+                                                    id="sp-price"
+                                                    type="number"
+                                                    min="0.01"
+                                                    step="0.01"
+                                                    placeholder="Enter purchase price"
+                                                    required>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="supplier-product-form-actions">
+                                            <button type="submit" class="na-btn na-btn-add">
+                                                Add Supplier Offer
+                                            </button>
+                                        </div>
+
+                                    </form>
+
+                                    <p id="supplier-product-message" role="status"></p>
+                                </div>
+
+                                <div class="pricing-panel">
+                                    <h3>Supplier Offers</h3>
+                                    <p>
+                                        Each row represents one product offered by one supplier.
+                                        You can update its purchase price or change its active status.
+                                    </p>
+
+                                    <div class="supplier-product-table-wrap">
+                                        <table class="products-table supplier-product-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product</th>
+                                                    <th>Supplier</th>
+                                                    <th>Purchase Price</th>
+                                                    <th>Status</th>
+                                                    <th>Actions</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody id="supplier-product-table">
+                                                <tr>
+                                                    <td colspan="5">Loading supplier offers...</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <link rel="stylesheet" href="assets/supplier_product_management.css">
+
+                        </div>
+                    
+                </div>
+                
+                <style>
+
+                    /* Three markup panels in a single row */
+                    #pricing-markup .pricing-rule-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                        gap: 20px;
+                        align-items: stretch;
+                    }
+
+                    /* Individual pricing panels */
+                    #pricing-markup .pricing-panel {
+                        background: #fff;
+                        padding: 22px;
+                        margin: 20px 0;
+                        border-radius: 10px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+                        min-width: 0;
+                        box-sizing: border-box;
+                    }
+
+                    /* Remove extra vertical margins inside the grid */
+                    #pricing-markup .pricing-rule-grid .pricing-panel {
+                        margin: 0;
+                    }
+
+                    /* Form labels */
+                    #pricing-markup .pricing-panel label {
+                        display: block;
+                        margin: 14px 0 6px;
+                        font-weight: 600;
+                    }
+
+                    /* Inputs and dropdowns */
+                    #pricing-markup .pricing-panel input,
+                    #pricing-markup .pricing-panel select {
+                        box-sizing: border-box;
+                        width: 100%;
+                        max-width: 100%;
+                        padding: 10px;
+                        margin-bottom: 12px;
+                    }
+
+                    /* Buttons */
+                    #pricing-markup .pricing-panel button {
+                        display: block;
+                        margin-top: 8px;
+                        max-width: 100%;
+                    }
+
+                    /* Preview table */
+                    #pricing-markup table {
+                        width: 100%;
+                        border-collapse: collapse;
+                    }
+
+                    #pricing-markup table th,
+                    #pricing-markup table td {
+                        padding: 10px;
+                        text-align: left;
+                        border-bottom: 1px solid #ddd;
+                    }
+
+                    /* Tablet: two columns */
+                    @media (max-width: 900px) {
+                        #pricing-markup .pricing-rule-grid {
+                            grid-template-columns: repeat(2, minmax(0, 1fr));
+                        }
+                    }
+
+                    /* Mobile: one column */
+                    @media (max-width: 600px) {
+                        #pricing-markup .pricing-rule-grid {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+
+
+                    /* =========================================
+                    PRICING & MARKUP TAB CONTROLS
+                    ========================================= */
+
+                    #pricing-markup .controls-bar {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 12px 18px;
+                    }
+
+                    #pricing-markup .toggle-buttons {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 8px;
+                    }
+
+                    /* #pricing-markup .toggle-btn {
+                        cursor: pointer;
+                        padding: 9px 18px;
+                        border: 1px solid #d5d5d5;
+                        border-radius: 6px;
+                        background: #fff;
+                        color: #333;
+                        font-weight: 600;
+                        transition: background 0.2s, color 0.2s;
+                    }
+
+                    #pricing-markup .toggle-btn.active {
+                        background: #263b55;
+                        border-color: #263b55;
+                        color: #fff;
+                    } */
+
+                    #pricing-markup .toggle-btn:hover {
+                        filter: brightness(0.96);
+                    }
+
+                    /* =========================================
+                    SUPPLIER PRODUCTS FORM
+                    ========================================= */
+
+                    #pricing-markup .supplier-product-form-grid {
+                        display: grid;
+                        grid-template-columns: repeat(3, minmax(0, 1fr));
+                        gap: 18px;
+                        align-items: end;
+                    }
+
+                    #pricing-markup .supplier-product-field {
+                        min-width: 0;
+                    }
+
+                    #pricing-markup .supplier-product-field label {
+                        display: block;
+                        margin: 10px 0 7px;
+                        font-weight: 600;
+                    }
+
+                    #pricing-markup .supplier-product-field input,
+                    #pricing-markup .supplier-product-field select {
+                        display: block;
+                        box-sizing: border-box;
+                        width: 100%;
+                        max-width: 100%;
+                        min-height: 42px;
+                        padding: 10px;
+                        border: 1px solid #ccc;
+                        border-radius: 6px;
+                        background: #fff;
+                    }
+
+                    #pricing-markup .supplier-product-form-actions {
+                        margin-top: 18px;
+                    }
+
+                    #pricing-markup #supplier-product-message {
+                        margin-top: 14px;
+                        overflow-wrap: anywhere;
+                    }
+
+                    /* =========================================
+                    SUPPLIER OFFERS TABLE
+                    ========================================= */
+
+                    #pricing-markup .supplier-product-table-wrap {
+                        width: 100%;
+                        overflow-x: auto;
+                    }
+
+                    #pricing-markup .supplier-product-table {
+                        width: 100%;
+                        min-width: 760px;
+                        border-collapse: collapse;
+                    }
+
+                    #pricing-markup .supplier-product-table th {
+                        background: #f3f5f7;
+                        font-weight: 700;
+                        white-space: nowrap;
+                    }
+
+                    #pricing-markup .supplier-product-table td {
+                        vertical-align: middle;
+                    }
+
+                    #pricing-markup .supplier-product-table input[data-price-input] {
+                        box-sizing: border-box;
+                        width: 125px;
+                        max-width: 100%;
+                        padding: 8px;
+                        border: 1px solid #ccc;
+                        border-radius: 5px;
+                    }
+
+                    #pricing-markup .supplier-offer-actions {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 7px;
+                    }
+
+                    #pricing-markup .supplier-offer-actions button {
+                        margin: 0;
+                        white-space: nowrap;
+                    }
+
+                    /* =========================================
+                    RESPONSIVE LAYOUT
+                    ========================================= */
+
+                    @media (max-width: 900px) {
+                        #pricing-markup .supplier-product-form-grid {
+                            grid-template-columns: repeat(2, minmax(0, 1fr));
+                        }
+                    }
+
+                    @media (max-width: 600px) {
+                        #pricing-markup .supplier-product-form-grid {
+                            grid-template-columns: 1fr;
+                        }
+
+                        #pricing-markup .controls-bar {
+                            padding: 10px;
+                        }
+
+                        #pricing-markup .toggle-btn {
+                            padding: 8px 12px;
+                        }
+                    }
+
+
+
+
+
+                    /* Cashier Shift Review — Pricing & Markup style */
+                    #shift-review .pricing-panel {
+                        width: 100%;
+                        background: #fff;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 10px;
+                        padding: 22px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+                        box-sizing: border-box;
+                    }
+
+                    #shift-review .pricing-panel-header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 16px;
+                        flex-wrap: wrap;
+                        margin-bottom: 18px;
+                    }
+
+                    #shift-review .pricing-panel-header h3 {
+                        margin: 0 0 6px;
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #222;
+                    }
+
+                    #shift-review .pricing-panel-header p {
+                        margin: 0;
+                        color: #6b7280;
+                        font-size: 13px;
+                    }
+
+                    #shift-review .shift-review-message {
+                        margin-bottom: 12px;
+                        font-size: 13px;
+                    }
+
+                    #shift-review .shift-review-table-wrapper {
+                        width: 100%;
+                        overflow-x: auto;
+                        border: 1px solid #e5e7eb;
+                        border-radius: 8px;
+                    }
+
+                    #shift-review #shift-review-table {
+                        width: 100%;
+                        min-width: 1100px;
+                        margin: 0;
+                        border: none;
+                        background: #fff;
+                        font-size: 13px;
+                    }
+
+                    #shift-review #shift-review-table thead th {
+                        background: #f5f6f8;
+                        color: #374151;
+                        font-weight: 600;
+                        white-space: nowrap;
+                        padding: 13px 12px;
+                        vertical-align: middle;
+                        border-bottom: 1px solid #e5e7eb;
+                    }
+
+                    #shift-review #shift-review-table tbody td {
+                        padding: 12px;
+                        vertical-align: middle;
+                        white-space: nowrap;
+                    }
+
+                    #shift-review #shift-review-table tbody tr:hover {
+                        background: #f8fafc;
+                    }
+
+                    #shift-review .shift-review-empty {
+                        text-align: center;
+                        padding: 24px !important;
+                        color: #6b7280;
+                    }
+
+                    #shift-review .finalize-shift-btn {
+                        padding: 6px 12px;
+                        border-radius: 5px;
+                        font-size: 12px;
+                        font-weight: 500;
+                    }
+
+                    @media (max-width: 768px) {
+                        #shift-review .pricing-panel {
+                            padding: 14px;
+                        }
+
+                        #shift-review .pricing-panel-header {
+                            align-items: flex-start;
+                        }
+                    }
+
+
+
+
+                    /* Space between Shift Review panels */
+                    #shift-review .shift-review-content {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 20px;
+                        padding: 20px;
+                        box-sizing: border-box;
+                    }
+
+                    /* Prevent panel margins from interfering with gap */
+                    #shift-review .shift-review-content > .pricing-panel {
+                        width: 100%;
+                        margin: 0;
+                        box-sizing: border-box;
+                    }
+
+                    /* Heading panel spacing */
+                    #shift-review .shift-review-panel-heading h3 {
+                        margin: 0 0 8px;
+                    }
+
+                    #shift-review .shift-review-panel-heading p {
+                        margin: 0;
+                        line-height: 1.5;
+                    }
+
+                    /* Space between status message and table */
+                    #shift-review .shift-review-message {
+                        margin-bottom: 14px;
+                    }
+
+                    /* Responsive spacing */
+                    @media (max-width: 768px) {
+                        #shift-review .shift-review-content {
+                            padding: 12px;
+                            gap: 14px;
+                        }
+                    }
+
+
+
+
+
+
+                                    
+                                        
+                </style>
+                <?php } ?>
+
+
+
+
                 <div id="settings" class="content-section">
                     <link rel="stylesheet" href="reports/reports-page.css">
                     <div class="custom-header" style="background-image: url(topbarlogo.png);background-repeat: no-repeat;background-size: cover;">
@@ -4880,37 +6295,7 @@ if (!$usersResult) {
         </div>
     </div>
 
-    <!-- PRODUCT TOOLTIP ELEMENT -->
-    <div id="productTooltip">
-        <div class="tooltip-header">
-            <img id="tooltipImg" src="" alt="Product Image">
-            <div class="tooltip-details">
-                <div class="detail-item"><label>Price:</label><span id="tooltipPrice"></span></div>
-                <div class="detail-item"><label>Quantity:</label><span id="tooltipQuantity"></span></div>
-                <div class="detail-item"><label>Type:</label><span id="tooltipType" class="type-tag"></span></div>
-                <div class="detail-item"><label>Color:</label><span id="tooltipColor"></span></div>
-            </div>
-        </div>
-        <div class="tooltip-full-width">
-            <p><b>Product ID:</b> <span id="tooltipProductId"></span></p>
-            <p><b>Product Name:</b> <span id="tooltipProductName"></span></p>
-            <p><b>Supplier ID:</b> <span id="tooltipSupplierId"></span></p>
-            <p><b>Supplier Name:</b> <span id="tooltipSupplierName"></span></p>
-            <p><b>Expiration Date:</b> <span id="tooltipExpiration" class="expiration-red"></span></p>
-        </div>
-    </div>
-
-    <!-- SUPPLIER TOOLTIP ELEMENT -->
-    <div id="supplierTooltip">
-        <img id="supplierTooltipImg" src="" alt="Supplier Image">
-        <div class="tooltip-full-width">
-            <p><b>Supplier ID:</b> <span id="supplierTooltipId"></span></p>
-            <p><b>Supplier Name:</b> <span id="supplierTooltipName"></span></p>
-            <p><b>Location:</b> <span id="supplierTooltipLocation"></span></p>
-            <p><b>Email:</b> <span id="supplierTooltipEmail"></span></p>
-            <p><b>Phone #:</b> <span id="supplierTooltipPhone"></span></p>
-        </div>
-    </div>
+ 
 
     <!-- =========================================================
      AI RECOMMENDATION / ORDER REVIEW MODAL
@@ -4950,10 +6335,10 @@ if (!$usersResult) {
             <div class="ai-order-footer">
 
                 <div class="ai-order-grand-total">
-                    <!-- <strong>Grand Total:</strong>
-                    <span id="aiOrderGrandTotal">
+                    <strong>Grand Total:</strong>
+                    <span  style="color: green;" id="aiOrderGrandTotal">
                         ₱0.00
-                    </span> -->
+                    </span>
                 </div>
 
                 <div class="ai-order-buttons">
@@ -5041,6 +6426,9 @@ if (!$usersResult) {
     <!-- <script src="get_product.js" defer></script>
     <script src="get_supplier.js" defer></script> -->
     <script src="assets/add_user.js" defer></script>
+    <script src="assets/pricing_markup.js" defer></script>
+    <script src="assets/supplier_product_management.js" defer></script>
+    <script src="archive_restore.js" defer></script>
 
 </body>
 </html>

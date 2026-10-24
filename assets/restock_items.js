@@ -44,6 +44,15 @@ document.addEventListener("DOMContentLoaded", function () {
     let itemCount = 0;
 
 
+    function formatOrderCurrency(value) {
+        return Number(value || 0).toLocaleString("en-PH", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+
+
     // =========================================
     // LOAD PRODUCTS
     // =========================================
@@ -90,102 +99,55 @@ document.addEventListener("DOMContentLoaded", function () {
     // UPDATE SUPPLIER SUMMARY
     // =========================================
 
-    function updateSupplierSummary() {
+    // =========================================
+    // UPDATE SUPPLIER SUMMARY
+    // =========================================
 
+    function updateSupplierSummary() {
         supplierSummaryContent.innerHTML = "";
 
-
-        const rows =
-            Array.from(
-                container.querySelectorAll(
-                    ".restock-item-row"
-                )
-            );
-
+        const rows = Array.from(
+            container.querySelectorAll(".restock-item-row")
+        );
 
         if (rows.length === 0) {
-
             supplierSummaryContent.innerHTML = `
                 <p class="supplier-summary-empty">
                     No products added yet.
                 </p>
             `;
-
             return;
         }
 
-
         const supplierGroups = {};
 
-
         rows.forEach(function (row) {
-
             const productID =
-                row.querySelector(
-                    ".restock-product-id"
-                ).value;
-
+                row.querySelector(".restock-product-id").value;
 
             const productName =
-                row.querySelector(
-                    ".restock-product-name"
-                ).value;
+                row.querySelector(".restock-product-name").value;
 
+            const quantityInput =
+                row.querySelector(".restock-quantity");
 
-            const quantity =
-                row.querySelector(
-                    ".restock-quantity"
-                ).value;
-
+            const quantity = Number(quantityInput.value || 0);
 
             const supplierSelect =
-                row.querySelector(
-                    ".restock-supplier"
-                );
+                row.querySelector(".restock-supplier");
 
+            const supplierID = supplierSelect.value;
 
-            const supplierID =
-                supplierSelect.value;
+            // Product hasn't been selected yet.
+            if (!productID) return;
 
-
-            // Product hasn't been selected yet
-            if (!productID) {
-                return;
-            }
-
-
-            // Supplier hasn't been selected yet
-            if (!supplierID) {
-                return;
-            }
-
-
-            // const supplierName =
-            //     supplierSelect.options[
-            //         supplierSelect.selectedIndex
-            //     ].text;
-
-
-            // if (!supplierGroups[supplierID]) {
-
-            //     supplierGroups[supplierID] = {
-
-            //         name: supplierName,
-
-            //         items: []
-
-            //     };
-
-            // }
-
-
-
-
+            // Supplier hasn't been selected yet.
+            if (!supplierID) return;
 
             const selectedOption =
-                supplierSelect.options[
-                    supplierSelect.selectedIndex
-                ];
+                supplierSelect.options[supplierSelect.selectedIndex];
+
+            if (!selectedOption) return;
 
             const supplierName =
                 selectedOption.dataset.name || "Not provided";
@@ -202,14 +164,21 @@ document.addEventListener("DOMContentLoaded", function () {
             const supplierLocation =
                 selectedOption.dataset.location || "Not provided";
 
+            // Purchase price from the selected supplier's offer.
+            const unitCost = Number(
+                selectedOption.dataset.unitCost || 0
+            );
+
+            // Do not calculate a cost for an invalid/empty quantity.
+            const itemTotal =
+                quantity > 0 ? unitCost * quantity : 0;
 
             const expectedDateInput =
                 row.querySelector(".restock-expected-date");
 
-            const expectedDate =
-                expectedDateInput
-                    ? expectedDateInput.value
-                    : "";
+            const expectedDate = expectedDateInput
+                ? expectedDateInput.value
+                : "";
 
             if (!supplierGroups[supplierID]) {
                 supplierGroups[supplierID] = {
@@ -220,7 +189,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     phone: supplierPhone,
                     email: supplierEmail,
                     expectedDate: expectedDate,
-                    items: []
+                    items: [],
+                    subtotal: 0
                 };
             } else if (
                 expectedDate &&
@@ -230,156 +200,218 @@ document.addEventListener("DOMContentLoaded", function () {
                     expectedDate;
             }
 
-
-
-
-
             supplierGroups[supplierID].items.push({
-
                 productName: productName,
-
-                quantity: quantity
-
+                quantity: quantity,
+                unitCost: unitCost,
+                itemTotal: itemTotal
             });
 
+            supplierGroups[supplierID].subtotal += itemTotal;
+
+
+
+            
         });
 
-
-        const supplierIDs =
-            Object.keys(supplierGroups);
-
+        const supplierIDs = Object.keys(supplierGroups);
 
         if (supplierIDs.length === 0) {
-
             supplierSummaryContent.innerHTML = `
                 <p class="supplier-summary-empty">
                     Select a product and supplier to see the order summary.
                 </p>
             `;
-
             return;
         }
 
+        let grandTotal = 0;
 
-        supplierIDs.forEach(
-            function (supplierID) {
+        supplierIDs.forEach(function (supplierID) {
+            const group = supplierGroups[supplierID];
 
-                const group =
-                    supplierGroups[supplierID];
+            grandTotal += group.subtotal;
 
+            const groupDiv = document.createElement("div");
+            groupDiv.className = "supplier-summary-group";
+            groupDiv.dataset.supplierId = supplierID;
 
-                const groupDiv =
-                    document.createElement("div");
+            groupDiv.innerHTML = `
+                <div class="supplier-summary-header"
+                     style="background-color: rgba(214, 208, 208, 0.92);">
 
-                groupDiv.className =
-                    "supplier-summary-group";
-
-                groupDiv.dataset.supplierId =
-                    supplierID;
-
-                groupDiv.innerHTML = `
-                    <div class="supplier-summary-header" style="background-color:  rgba(214, 208, 208, 0.92);">
-
-                        
-                        <div class="supplier-summary-info-row">
-                            <div class="supplier-summary-info-item">
-                                <strong>Company Name: </strong>
-                                <span style="font-weight: bolder;">
-                                    ${group.company}
-                                </span>
-                            </div>
-
-                            <div class="supplier-summary-info-item">
-                                <strong>Contact Person: </strong>
-                                <span style="font-weight: bolder;">
-                                    ${group.name}
-                                </span>
-                            </div>
+                    <div class="supplier-summary-info-row">
+                        <div class="supplier-summary-info-item">
+                            <strong>Company Name: </strong>
+                            <span style="font-weight: bolder;">
+                                ${group.company}
+                            </span>
                         </div>
 
-                        <div class="supplier-summary-info-row supplier-location-row">
-                            <div class="supplier-summary-info-item">
-                                <strong>Location: </strong>
-                                <span style="font-weight: bolder;">
-                                    ${group.location}
-                                </span>
-                            </div>
+                        <div class="supplier-summary-info-item">
+                            <strong>Contact Person: </strong>
+                            <span style="font-weight: bolder;">
+                                ${group.name}
+                            </span>
                         </div>
-
-                        <div class="supplier-summary-info-row">
-
-                            <div class="supplier-summary-info-item">
-                                <strong>Phone Number: </strong>
-                                <span style="font-weight: bolder; color:rgba(1, 46, 130, 0.92);">📞 ${group.phone}</span>
-                            </div>
-
-                            <div class="supplier-summary-info-item">
-                                <strong>Email: </strong>
-                                <span style="font-weight: bolder; color:rgba(3, 95, 34, 0.92);">✉️ ${group.email}</span>
-                            </div>
-
-                        </div>
-
                     </div>
 
-                    <div class="supplier-summary-expected-date" style="margin-top: -20px">
-                        <label style="font-weight: bolder;">
-                            Expected Receive Date:
-                        </label>
-
-                        <input
-                            type="date"
-                            class="supplier-expected-date"
-                            style="width: 30%; font-weight: bolder;"
-                            value="${group.expectedDate || ""}"
-                            required>
+                    <div class="supplier-summary-info-row supplier-location-row">
+                        <div class="supplier-summary-info-item">
+                            <strong>Location: </strong>
+                            <span style="font-weight: bolder;">
+                                ${group.location}
+                            </span>
+                        </div>
                     </div>
-                `;
 
-
-                group.items.forEach(
-                    function (item) {
-
-                        const itemDiv =
-                            document.createElement("div");
-
-                        itemDiv.className =
-                            "supplier-summary-item";
-
-
-                        itemDiv.innerHTML = `
-
-                            <span class="supplier-summary-product" style="font-weight: bolder;">
-
-                                ${item.productName}
-
+                    <div class="supplier-summary-info-row">
+                        <div class="supplier-summary-info-item">
+                            <strong>Phone Number: </strong>
+                            <span style="font-weight: bolder; color: rgba(1, 46, 130, 0.92);">
+                                📞 ${group.phone}
                             </span>
+                        </div>
 
-                            <span class="supplier-summary-quantity" style="font-weight: bolder;">
-
-                                ${item.quantity || "-"}
-
+                        <div class="supplier-summary-info-item">
+                            <strong>Email: </strong>
+                            <span style="font-weight: bolder; color: rgba(3, 95, 34, 0.92);">
+                                ✉️ ${group.email}
                             </span>
+                        </div>
+                    </div>
+                </div>
 
-                        `;
+                <div class="supplier-summary-expected-date"
+                     style="margin-top: -20px">
+                    <label style="font-weight: bolder;">
+                        Expected Receive Date:
+                    </label>
+
+                    <input
+                        type="date"
+                        class="supplier-expected-date"
+                        style="width: 30%; font-weight: bolder;"
+                        value="${group.expectedDate || ""}"
+                        min="${getLocalDateString()}"
+                        required>
 
 
-                        groupDiv.appendChild(
-                            itemDiv
-                        );
 
-                    }
+
+
+
+
+
+
+                </div>
+
+                <div class="supplier-summary-cost-header"
+                     style="display: grid;
+                            grid-template-columns: minmax(120px, 2fr) repeat(3, minmax(90px, 1fr));
+                            gap: 10px;
+                            padding: 10px;
+                            font-weight: bold;
+                            border-bottom: 1px solid #ccc;">
+                    <span>Product</span>
+                    <span>Quantity</span>
+                    <span>Unit Cost</span>
+                    <span>Item Total</span>
+                </div>
+            `;
+
+            group.items.forEach(function (item) {
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "supplier-summary-item";
+
+                itemDiv.style.display = "grid";
+                itemDiv.style.gridTemplateColumns =
+                    "minmax(120px, 2fr) repeat(3, minmax(90px, 1fr))";
+                itemDiv.style.gap = "10px";
+                itemDiv.style.alignItems = "center";
+                itemDiv.style.padding = "10px";
+                itemDiv.style.borderBottom = "1px solid #eee";
+
+                const productSpan = document.createElement("span");
+                productSpan.className = "supplier-summary-product";
+                productSpan.style.fontWeight = "bolder";
+                productSpan.textContent = item.productName;
+
+                const quantitySpan = document.createElement("span");
+                quantitySpan.className = "supplier-summary-quantity";
+                quantitySpan.style.fontWeight = "bolder";
+                quantitySpan.style.color = "green";
+                quantitySpan.style.marginRight = "40px";
+                quantitySpan.textContent = item.quantity || "-";
+
+                const unitCostSpan = document.createElement("span");
+                unitCostSpan.style.fontWeight = "bolder";
+                unitCostSpan.textContent =
+                    `₱${formatOrderCurrency(item.unitCost)}`;
+
+                const itemTotalSpan = document.createElement("span");
+                itemTotalSpan.style.fontWeight = "bolder";
+                itemTotalSpan.textContent =
+                    `₱${formatOrderCurrency(item.itemTotal)}`;
+
+                itemDiv.append(
+                    productSpan,
+                    quantitySpan,
+                    unitCostSpan,
+                    itemTotalSpan
                 );
 
+                groupDiv.appendChild(itemDiv);
+            });
 
-                supplierSummaryContent.appendChild(
-                    groupDiv
-                );
+            // Subtotal for this supplier.
+            const subtotalDiv = document.createElement("div");
+            subtotalDiv.className = "supplier-summary-subtotal";
+            subtotalDiv.style.display = "flex";
+            subtotalDiv.style.justifyContent = "flex-end";
+            subtotalDiv.style.gap = "12px";
+            subtotalDiv.style.padding = "12px 10px";
+            subtotalDiv.style.fontWeight = "bold";
+            subtotalDiv.style.borderTop = "2px solid #ccc";
 
-            }
-        );
+            subtotalDiv.innerHTML = `
+                <span>Supplier Subtotal:</span>
+                <span>₱${formatOrderCurrency(group.subtotal)}</span>
+            `;
 
+            groupDiv.appendChild(subtotalDiv);
+            supplierSummaryContent.appendChild(groupDiv);
+        });
+        const grandTotalDisplay =
+            document.getElementById("restockGrandTotal");
+
+        if (grandTotalDisplay) {
+            grandTotalDisplay.textContent =
+                `₱${formatOrderCurrency(grandTotal)}`;
+        }
+
+        // Overall total across all suppliers.
+        const grandTotalDiv = document.createElement("div");
+        grandTotalDiv.className = "supplier-summary-grand-total";
+
+        grandTotalDiv.style.display = "flex";
+        grandTotalDiv.style.justifyContent = "space-between";
+        grandTotalDiv.style.alignItems = "center";
+        grandTotalDiv.style.gap = "12px";
+        grandTotalDiv.style.padding = "16px";
+        grandTotalDiv.style.marginTop = "16px";
+        grandTotalDiv.style.borderTop = "3px solid #333";
+        grandTotalDiv.style.fontSize = "1.1rem";
+        grandTotalDiv.style.fontWeight = "bold";
+
+        grandTotalDiv.innerHTML = `
+            <span stlye="color: black;">GRAND TOTAL</span>
+            <span stlye="color: green;">₱${formatOrderCurrency(grandTotal)}</span>
+        `;
+
+        supplierSummaryContent.appendChild(grandTotalDiv);
     }
+
 
     // =========================================
     // SUPPLIER CHANGED
@@ -619,7 +651,10 @@ document.addEventListener("DOMContentLoaded", function () {
         container.appendChild(row);
 
 
-        loadSuppliersForRow(row);
+        // loadSuppliersForRow(row);
+
+
+
 
     }
 
@@ -1059,11 +1094,13 @@ document.addEventListener("DOMContentLoaded", function () {
     // SELECT PRODUCT
     // =========================================
 
-    function selectProduct(product) {
+    async function selectProduct(product) {
 
         if (!activeRow) {
             return;
         }
+
+        const row = activeRow;
 
         // =========================================
         // CHECK FOR DUPLICATE PRODUCT
@@ -1101,28 +1138,28 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Product ID
         const productIDInput =
-            activeRow.querySelector(
+            row.querySelector(
                 ".restock-product-id"
             );
 
 
         // Product Name
         const productNameInput =
-            activeRow.querySelector(
+            row.querySelector(
                 ".restock-product-name"
             );
 
 
         // Current Stock
         const currentStockInput =
-            activeRow.querySelector(
+            row.querySelector(
                 ".restock-current-stock"
             );
 
 
         // Pack Size
         const packSizeInput =
-            activeRow.querySelector(
+            row.querySelector(
                 ".restock-pack-size"
             );
 
@@ -1143,7 +1180,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Change button text because a product is selected
         const searchButton =
-            activeRow.querySelector(
+            row.querySelector(
                 ".restock-product-search"
             );
 
@@ -1153,44 +1190,84 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         // Enable supplier
+        // const supplierSelect =
+        //     row.querySelector(
+        //         ".restock-supplier"
+        //     );
+
+        // supplierSelect.disabled = false;
+
+
+        // // Enable quantity
+        // const quantityInput =
+        //     row.querySelector(
+        //         ".restock-quantity"
+        //     );
+
+        // quantityInput.disabled = false;
+
+        // quantityInput.placeholder =
+        //     "Quantity";
+
+
+
+
+        // =========================================
+        // PREPARE SUPPLIER AND QUANTITY INPUTS
+        // =========================================
+
         const supplierSelect =
-            activeRow.querySelector(
-                ".restock-supplier"
-            );
+            row.querySelector(".restock-supplier");
 
-        supplierSelect.disabled = false;
-
-
-        // Enable quantity
         const quantityInput =
-            activeRow.querySelector(
-                ".restock-quantity"
-            );
+            row.querySelector(".restock-quantity");
 
-        quantityInput.disabled = false;
+        // Keep supplier disabled until its offers load.
+        supplierSelect.disabled = true;
 
-        quantityInput.placeholder =
-            "Quantity";
+        supplierSelect.innerHTML = `
+            <option value="" selected disabled>
+                Loading supplier offers...
+            </option>
+        `;
+
+        // Reset quantity for the newly selected product.
+        quantityInput.value = "";
+        quantityInput.setCustomValidity("");
+        quantityInput.placeholder = "Quantity";
+        quantityInput.disabled = true;
+
+        // Use the selected product's pack size.
+        quantityInput.setAttribute("step", product.Pack_Size);
+        quantityInput.setAttribute("min", product.Pack_Size);
+
+        // Load only suppliers that actively offer this product.
+        await loadSuppliersForRow(row, product.Product_ID);
+
+
+
+
+
 
             
 
-        quantityInput.value = "";
+        // quantityInput.value = "";
 
-        quantityInput.setCustomValidity("");
-
-
+        // quantityInput.setCustomValidity("");
 
 
-        // Set quantity step based on pack size
-        quantityInput.setAttribute(
-            "step",
-            product.Pack_Size
-        );
 
-        quantityInput.setAttribute(
-            "min",
-            product.Pack_Size
-        );
+
+        // // Set quantity step based on pack size
+        // quantityInput.setAttribute(
+        //     "step",
+        //     product.Pack_Size
+        // );
+
+        // quantityInput.setAttribute(
+        //     "min",
+        //     product.Pack_Size
+        // );
 
 
         // =========================================
@@ -1304,89 +1381,103 @@ document.addEventListener("DOMContentLoaded", function () {
     // SUPPLIER LOADING
     // =========================================
 
-    async function loadSuppliersForRow(row) {
 
-        const supplierSelect =
-            row.querySelector(
-                ".restock-supplier"
-            );
+    // =========================================
+    // LOAD ACTIVE SUPPLIER OFFERS FOR A PRODUCT
+    // =========================================
 
+    async function loadSuppliersForRow(row, productID) {
+        const supplierSelect = row.querySelector(".restock-supplier");
+        const quantityInput = row.querySelector(".restock-quantity");
+
+        supplierSelect.disabled = true;
+        quantityInput.disabled = true;
+
+        supplierSelect.innerHTML = `
+            <option value="">Loading supplier offers...</option>
+        `;
 
         try {
-
-            const response =
-                await fetch("get_supplier.php");
-
+            const response = await fetch(
+                `get_product_supplier_offers.php?product_id=${encodeURIComponent(productID)}&t=${Date.now()}`
+            );
 
             if (!response.ok) {
-
-                throw new Error(
-                    "Failed to load suppliers"
-                );
-
+                throw new Error("Failed to load supplier offers.");
             }
 
+            const result = await response.json();
 
-            const suppliers =
-                await response.json();
+            if (!result.success || !Array.isArray(result.data)) {
+                throw new Error(
+                    result.message || "Unable to load supplier offers."
+                );
+            }
 
+            supplierSelect.innerHTML = `
+                <option value="" selected disabled>Select Supplier</option>
+            `;
 
-            suppliers.forEach(
-                function (supplier) {
+            if (result.data.length === 0) {
+                supplierSelect.innerHTML = `
+                    <option value="" selected disabled>
+                        No active supplier offers
+                    </option>
+                `;
 
-                    const option =
-                        document.createElement(
-                            "option"
-                        );
+                alert(
+                    "This product has no active supplier offers. " +
+                    "Please add or activate a supplier offer first."
+                );
 
+                return;
+            }
 
-                    option.value =
-                        supplier.Supplier_ID;
+            result.data.forEach(function (offer) {
+                const option = document.createElement("option");
 
+                option.value = offer.supplierId;
 
-                    option.text =
-                        `${supplier.Supplier_ID} - ${supplier.CompanyName} || ${supplier.ContactPerson} (${supplier.City})`;
+                option.textContent =
+                    `₱${formatOrderCurrency(offer.unitCost)} - ${offer.supplierName} || ` +
+                    `${offer.contactPerson || "Not provided"} ` +
+                    `(${offer.supplierCity || "No city"}) — `
+                    ;
 
-                    option.dataset.name =
-                        supplier.ContactPerson || "";
+                option.dataset.productSupplierId = offer.productSupplierId;
+                option.dataset.unitCost = offer.unitCost;
+                option.dataset.company = offer.supplierName || "";
+                option.dataset.name = offer.contactPerson || "";
+                option.dataset.phone = offer.supplierPhone || "";
+                option.dataset.email = offer.supplierEmail || "";
+                option.dataset.location = offer.supplierLocation || "";
 
-                    option.dataset.company =
-                        supplier.CompanyName || "";                
+                supplierSelect.appendChild(option);
+            });
 
-
-                    /*
-                    * Store supplier contact information
-                    * inside the option.
-                    */
-                    option.dataset.phone =
-                        supplier.PhoneNumber || "";
-
-                    option.dataset.email =
-                        supplier.Email || "";
-
-                    option.dataset.location = `${supplier.Address} - ${supplier.City}`;
-
-
-
-
-                    supplierSelect.appendChild(
-                        option
-                    );
-
-                }
-            );
-
+            supplierSelect.disabled = false;
+            quantityInput.disabled = false;
+            supplierSelect.value = "";
 
         } catch (error) {
+            console.error("Supplier offer loading error:", error);
 
-            console.error(
-                "Failed to fetch suppliers:",
-                error
+            supplierSelect.innerHTML = `
+                <option value="" selected disabled>
+                    Unable to load supplier offers
+                </option>
+            `;
+
+            supplierSelect.disabled = true;
+            quantityInput.disabled = true;
+
+            alert(
+                "Unable to load supplier offers. " +
+                "Please try selecting the product again."
             );
-
         }
-
     }
+
 
 
     // =========================================

@@ -147,7 +147,11 @@ function showContentSection(sectionId) {
 
     if (sectionId === 'order-restock') {
         showRestockTable('itemToReceive');
-    }    
+    }  
+    
+    if (sectionId === 'real-stock-adjustments') {
+    loadStockAdjustmentHistory();
+}  
 
 }
 
@@ -184,70 +188,6 @@ function cancelRow(buttonEl, config) {
 }
 
 
-// --- Configuration Objects for Each 'ADD' feature ---
-// const addConfig = {
-//     newAdditions: {
-//         rowCount: inventoryRowCount,
-//         idCounter: inventoryIdCounter,
-//         tableSelector: '#new-additions .new-additions-table tbody',
-//         countElementId: 'na-count',
-//         getHtml: (rowCount, idCounter) => {
-//             const productOptions = Object.keys(productDetailsData).map(id => `<option value="${id}">${id} - ${productDetailsData[id].productName.substring(0, 30)}...</option>`).join('');
-//             const supplierOptions = Object.keys(supplierDetailsData).map(id => `<option value="${id}">${id}</option>`).join('');
-//             const locationOptions = locations.map(loc => `<option value="${loc}">${loc}</option>`).join('');
-//             const statusOptions = ['New Product', 'Returned', 'Issue'].map(s => `<option value="${s}">${s}</option>`).join('');
-//             const today = new Date().toISOString().slice(0, 10);
-//             return `
-//                 <td>${rowCount}</td>
-//                 <td>${idCounter}</td>
-//                 <td><select class="inline-select" id="new-product-id">${productOptions}</select></td>
-//                 <td><input type="number" class="inline-input" value="1"></td>
-//                 <td><input type="date" class="inline-input" value="${today}"></td>
-//                 <td><input type="date" class="inline-input"></td>
-//                 <td><select class="inline-select">${statusOptions}</select></td>
-//                 <td><select class="inline-select">${supplierOptions}</select></td>
-//                 <td colspan="2"><div style="display: flex; gap: 5px;"><select class="inline-select">${locationOptions}</select><button class="save-btn">✔️</button><button class="cancel-btn">✖️</button></div></td>
-//             `;
-//         },
-//     },
-//     products: {
-//         rowCount: productRowCount,
-//         idCounter: productIdCounter,
-//         tableSelector: '#products .products-table tbody',
-//         countElementId: 'products-count',
-//         getHtml: (rowCount, idCounter) => {
-//             const supplierOptions = Object.keys(supplierDetailsData).map(id => `<option value="${id}">${id}</option>`).join('');
-//             return `
-//                 <td>${rowCount}</td>
-//                 <td>${idCounter}</td>
-//                 <td><input type="text" class="inline-input" placeholder="Product Name..."></td>
-//                 <td><input type="text" class="inline-input" placeholder="Type..."></td>
-//                 <td><input type="text" class="inline-input" placeholder="10 units"></td>
-//                 <td><input type="number" class="inline-input" value="0"></td>
-//                 <td><input type="number" class="inline-input" value="0"></td>
-//                 <td><input type="text" class="inline-input" placeholder="PHP 0"></td>
-//                 <td><input type="text" class="inline-input" placeholder="PHP 0"></td>
-//                 <td><div style="display: flex; gap: 5px;"><select class="inline-select">${supplierOptions}</select><button class="save-btn">✔️</button><button class="cancel-btn">✖️</button></div></td>
-//             `;
-//         }
-//     },
-//     // ... other pages can be configured similarly
-// };
-
-
-// --- View Toggling Functions ---
-// function showReturnsTable(tableType) {
-//     activeReturnsTable = tableType;
-//     document.getElementById('supplier-returns-table-container').style.display = tableType === 'supplier' ? 'flex' : 'none';
-//     document.getElementById('customer-returns-table-container').style.display = tableType === 'customer' ? 'flex' : 'none';
-//     document.getElementById('supplier-returns-btn').classList.toggle('active', tableType === 'supplier');
-//     document.getElementById('customer-returns-btn').classList.toggle('active', tableType === 'customer');
-//     document.getElementById('returns-count').textContent = String(tableType === 'supplier' ? sReturnsRowCount : cReturnsRowCount).padStart(2, '0');
-
-//     document.getElementById('cusreturns-add-btn').style.display = tableType === 'customer' ? 'inline-block' : 'none';
-//     document.getElementById('supreturns-add-btn').style.display = tableType === 'supplier' ? 'inline-block' : 'none';
-// }
-
 function showReturnsTable(viewType) {
     activeReturnsTable = viewType;
     document.getElementById('supplier-returns-table-container').style.display = viewType === 'supplier' ? 'flex' : 'none';
@@ -263,170 +203,6 @@ function showReturnsTable(viewType) {
     document.getElementById('supreturns-add-btn').style.display = viewType === 'supplier' ? 'inline-block' : 'none';
 }
 
-// function showRestockTable(viewType) {
-//     activeRestockTable = viewType;
-//     document.getElementById('list-restock-table-container').style.display = viewType === 'listToOrder' ? 'flex' : 'none';
-//     document.getElementById('item-restock-table-container').style.display = viewType === 'itemToOrder' ? 'flex' : 'none';
-//     document.getElementById('receive-restock-table-container').style.display = viewType === 'itemToReceive' ? 'flex' : 'none';
-
-//     document.getElementById('list-restock-btn').classList.toggle('active', viewType === 'listToOrder');
-//     document.getElementById('item-restock-btn').classList.toggle('active', viewType === 'itemToOrder');
-//     document.getElementById('receive-restock-btn').classList.toggle('active', viewType === 'itemToReceive');
-
-
-//     // document.getElementById('returns-count').textContent = String(viewType === 'supplier' ? sReturnsRowCount : cReturnsRowCount).padStart(2, '0');
-
-//     document.getElementById('cusreturns-add-btn').style.display = viewType === 'listToOrder' ? 'inline-block' : 'none';
-//     document.getElementById('supreturns-add-btn').style.display = viewType === 'itemToOrder' ? 'inline-block' : 'none';
-//     document.getElementById('supreturns-add-btn').style.display = viewType === 'itemToReceive' ? 'inline-block' : 'none';
-// }
-
-// function showRestockTable(viewType) {
-//     activeRestockTable = viewType;
-
-//     document.getElementById('list-restock-table-container').style.display =
-//         viewType === 'listToOrder' ? 'flex' : 'none';
-
-//     document.getElementById('item-restock-table-container').style.display =
-//         viewType === 'itemToOrder' ? 'flex' : 'none';
-
-//     document.getElementById('receive-restock-table-container').style.display =
-//         viewType === 'itemToReceive' ? 'flex' : 'none';
-
-//     document.getElementById('list-restock-btn').classList.toggle(
-//         'active',
-//         viewType === 'listToOrder'
-//     );
-
-//     document.getElementById('item-restock-btn').classList.toggle(
-//         'active',
-//         viewType === 'itemToOrder'
-//     );
-
-//     document.getElementById('receive-restock-btn').classList.toggle(
-//         'active',
-//         viewType === 'itemToReceive'
-//     );
-
-//     document.getElementById('edit-restock-btn').style.display =
-//     viewType === 'listToOrder' || viewType === 'itemToOrder'
-//         ? 'inline-block'
-//         : 'none';
-
-//     document.getElementById('delete-restock-btn').style.display =
-//         viewType === 'listToOrder' || viewType === 'itemToOrder'
-//             ? 'inline-block'
-//             : 'none';
-
-//     document.getElementById('order-restock-add-btn').style.display =
-//         viewType === 'listToOrder' || viewType === 'itemToOrder'
-//             ? 'inline-block'
-//             : 'none';
-
-//     document.getElementById('update-restock-status-btn').style.display =
-//         viewType === 'itemToReceive'
-//             ? 'inline-block'
-//             : 'none';
-
-
-
-
-//     if (viewType === 'listToOrder') {
-//         document.getElementById('products-count').textContent =
-//             document.querySelectorAll('#list-restock-table-container tbody tr').length;
-//     }
-
-//     if (viewType === 'itemToOrder') {
-//         document.getElementById('products-count').textContent =
-//             document.querySelectorAll('#item-restock-table-container tbody tr').length;
-//     }
-
-//     if (viewType === 'itemToReceive') {
-//         document.getElementById('products-count').textContent =
-//             document.querySelectorAll('#receive-restock-table-container tbody tr').length;
-//     }
-// }
-
-
-
-
-
-
-
-
-
-// function showRestockTable(viewType) {
-//     activeRestockTable = viewType;
-
-//     document.getElementById('list-restock-table-container').style.display =
-//         viewType === 'listToOrder' ? 'flex' : 'none';
-
-//     document.getElementById('item-restock-table-container').style.display =
-//         viewType === 'itemToOrder' ? 'flex' : 'none';
-
-//     document.getElementById('receive-restock-table-container').style.display =
-//         viewType === 'itemToReceive' ? 'flex' : 'none';
-
-//     document.getElementById('list-restock-btn').classList.toggle(
-//         'active',
-//         viewType === 'listToOrder'
-//     );
-
-//     document.getElementById('item-restock-btn').classList.toggle(
-//         'active',
-//         viewType === 'itemToOrder'
-//     );
-
-//     document.getElementById('receive-restock-btn').classList.toggle(
-//         'active',
-//         viewType === 'itemToReceive'
-//     );
-
-//     document.getElementById('edit-restock-btn').style.display =
-//         viewType === 'listToOrder' || viewType === 'itemToOrder'
-//             ? 'inline-block'
-//             : 'none';
-
-//     document.getElementById('delete-restock-btn').style.display =
-//         viewType === 'listToOrder' || viewType === 'itemToOrder'
-//             ? 'inline-block'
-//             : 'none';
-
-//     document.getElementById('order-restock-add-btn').style.display =
-//         viewType === 'listToOrder' || viewType === 'itemToOrder'
-//             ? 'inline-block'
-//             : 'none';
-
-//     // document.getElementById('place-order-btn').style.display =
-//     //     viewType === 'itemToOrder'
-//     //         ? 'inline-block'
-//     //         : 'none';
-
-//     document.getElementById('place-order-btn').style.display =
-//         viewType === 'listToOrder'
-//             ? 'inline-block'
-//             : 'none';            
-
-//     document.getElementById('update-restock-status-btn').style.display =
-//         viewType === 'itemToReceive'
-//             ? 'inline-block'
-//             : 'none';
-
-//     if (viewType === 'listToOrder') {
-//         document.getElementById('products-count').textContent =
-//             document.querySelectorAll('#list-restock-table-container tbody tr').length;
-//     }
-
-//     if (viewType === 'itemToOrder') {
-//         document.getElementById('products-count').textContent =
-//             document.querySelectorAll('#item-restock-table-container tbody tr').length;
-//     }
-
-//     if (viewType === 'itemToReceive') {
-//         document.getElementById('products-count').textContent =
-//             document.querySelectorAll('#receive-restock-table-container tbody tr').length;
-//     }
-// }
 
 
 
@@ -695,64 +471,6 @@ function showSalesAggregrationView(viewType, tableType = activeAggregationType) 
 
 
 }
-
-    // 
-
-    // document.getElementById('byproduct-view-container').style.display = viewType === 'byProduct' ? 'flex' : 'none';
-    // document.getElementById('entire-view-container').style.display = viewType === 'entire' ? 'flex' : 'none';
-
-
-    // document.getElementById('byproduct-sales-btn').classList.toggle('active', viewType === 'byProduct');
-    // document.getElementById('entire-sales-btn').classList.toggle('active', viewType === 'entire');
-
-
-
-    // document.getElementById('daily-byProduct-view-container').style.display = (viewType === 'byProduct' && tableType === 'daily')? 'flex' : 'none';
-    // document.getElementById('weekly-byProduct-view-container').style.display = (viewType === 'byProduct' && tableType === 'weekly')? 'flex' : 'none';
-    // document.getElementById('monthly-byProduct-view-container').style.display = (viewType === 'byProduct' && tableType === 'monthly')? 'flex' : 'none';
-    
-    // document.getElementById('daily-product-btn').classList.toggle('active', viewType === 'byProduct' && tableType === 'daily');
-    // document.getElementById('weekly-product-btn').classList.toggle('active', viewType === 'byProduct' && tableType === 'weekly');
-    // document.getElementById('monthly-product-btn').classList.toggle('active', viewType === 'byProduct' && tableType === 'monthly');
-
-    // document.getElementById('daily-entire-view-container').style.display = (viewType === 'entire' && tableType === 'daily') ? 'flex' : 'none';
-    // document.getElementById('weekly-entire-view-container').style.display = (viewType === 'entire' && tableType === 'weekly')? 'flex' : 'none';
-    // document.getElementById('monthly-entire-view-container').style.display = (viewType === 'entire'&& tableType === 'monthly') ? 'flex' : 'none';
-
-    // document.getElementById('daily-entire-btn').classList.toggle('active', viewType === 'entire' && tableType === 'daily');
-    // document.getElementById('weekly-entire-btn').classList.toggle('active', viewType === 'entire' && tableType === 'weekly');
-    // document.getElementById('monthly-entire-btn').classList.toggle('active', viewType === 'entire' && tableType === 'monthly');
-
-
-    // document.getElementById('ntire-sales-view-container').style.display = viewType === 'entire' ? 'flex' : 'none';
-    // document.getElementById('byproduct-sales-view-container').style.display = viewType === 'byproduct' ? 'flex' : 'none';
-
-    // document.getElementById('byproduct-daily-sales-view-container').style.display = viewType === 'dailyProduct' ? 'flex' : 'none';
-    // document.getElementById('byproduct-weekly-sales-view-container').style.display = viewType === 'weeklyProduct' ? 'flex' : 'none';
-    // document.getElementById('byproduct-monthly-sales-view-container').style.display = viewType === 'monthlyProduct' ? 'flex' : 'none';
-
-    // document.getElementById('entire-daily-sales-view-container').style.display = viewType === 'dailyEntire' ? 'flex' : 'none';
-    // document.getElementById('entire-weekly-sales-view-container').style.display = viewType === 'weeklyEntire' ? 'flex' : 'none';
-    // document.getElementById('entire-monthly-sales-view-container').style.display = viewType === 'monthlyEntire' ? 'flex' : 'none';
-
-
-    // document.getElementById('entire-sales-btn').classList.toggle('active', viewType === 'dailyEntire');
-    // document.getElementById('byproduct-sales-btn').classList.toggle('active', viewType === 'dailyProduct');
-
-    // // tool bar buttons
-    // document.getElementById('byproduct-daily-sales-btn').classList.toggle('active', viewType === 'dailyProduct');
-    // document.getElementById('byproduct-weekly-sales-btn').classList.toggle('active', viewType === 'weeklyProduct');
-    // document.getElementById('byproduct-monthly-sales-btn').classList.toggle('active', viewType === 'monthlyProduct');
-
-    // document.getElementById('entire-daily-sales-btn').classList.toggle('active', viewType === 'dailyEntire');
-    // document.getElementById('entire-weekly-sales-btn').classList.toggle('active', viewType === 'weeklyEntire');
-    // document.getElementById('entire-monthly-sales-btn').classList.toggle('active', viewType === 'monthlyEntire');
-
-    // document.getElementById('forecast-analytics-count').textContent = String(viewType === 'forecast' ? forecastRowCount : analyticsRowCount).padStart(2, '0');
-
-
-    
-
 
 
 
@@ -1047,162 +765,6 @@ if (sidebarToggle) {
     });
 
 
-    // PLACE ORDER
-    // document.getElementById('place-order-btn').addEventListener('click', async function () {
-
-    //     if (!selectedListToOrderId) {
-    //         alert('Please select a List Order first.');
-    //         return;
-    //     }
-
-    //     const selectedRow = document.querySelector(
-    //         `.list-order-row[data-id="${selectedListToOrderId}"]`
-    //     );
-
-    //     if (!selectedRow) {
-    //         alert('Selected List Order could not be found.');
-    //         return;
-    //     }
-
-    //     const statusElement = selectedRow.querySelector('.status-tag');
-
-    //     const currentStatus = statusElement
-    //         ? statusElement.textContent.trim()
-    //         : '';
-
-    //     if (currentStatus !== 'Confirmed') {
-    //         alert('Only Confirmed orders can be placed.');
-    //         return;
-    //     }
-
-    //     const confirmed = confirm(
-    //         `Place List Order #${selectedListToOrderId}?\n\n` +
-    //         `This will change the order status to Ordered.`
-    //     );
-
-    //     if (!confirmed) {
-    //         return;
-    //     }
-
-    //     try {
-
-    //         const response = await fetch('place_order.php', {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify({
-    //                 listToOrderId: selectedListToOrderId
-    //             })
-    //         });
-
-    //         const rawResponse = await response.text();
-
-    //         console.log('place_order.php response:', rawResponse);
-
-    //         let result;
-
-    //         try {
-    //             result = JSON.parse(rawResponse);
-    //         } catch (error) {
-    //             console.error('Invalid JSON:', rawResponse);
-
-    //             alert('Server returned an invalid response.');
-    //             return;
-    //         }
-
-    //         if (!result.success) {
-    //             alert(result.error || 'Failed to place order.');
-    //             return;
-    //         }
-
-    //         alert(result.message);
-
-    //         location.reload();
-
-    //     } catch (error) {
-
-    //         console.error('Place order error:', error);
-
-    //         alert('An error occurred while placing the order.');
-    //     }
-    // });    
-
-
-
-
-
-
-//PLACE ORDER LISTENER
-
-
-
-    // document.getElementById('place-order-btn').addEventListener('click', async function () {
-
-    //     if (!selectedListToOrderId) {
-    //         alert('Please select a List Order first.');
-    //         return;
-    //     }
-
-    //     const confirmed = confirm(
-    //         `Place List Order #${selectedListToOrderId}?\n\n` +
-    //         `This will change the order status to Ordered.`
-    //     );
-
-    //     if (!confirmed) {
-    //         return;
-    //     }
-
-    //     try {
-
-    //         const response = await fetch('place_order.php', {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Content-Type': 'application/json'
-    //             },
-    //             body: JSON.stringify({
-    //                 listToOrderId: selectedListToOrderId
-    //             })
-    //         });
-
-    //         const rawResponse = await response.text();
-
-    //         console.log('place_order.php response:', rawResponse);
-
-    //         let result;
-
-    //         try {
-    //             result = JSON.parse(rawResponse);
-    //         } catch (error) {
-    //             console.error('Invalid JSON:', rawResponse);
-
-    //             alert('Server returned an invalid response.');
-    //             return;
-    //         }
-
-    //         if (!result.success) {
-    //             alert(result.error || 'Failed to place order.');
-    //             return;
-    //         }
-
-    //         alert(result.message);
-
-    //         location.reload();
-
-    //     } catch (error) {
-
-    //         console.error('Place order error:', error);
-
-    //         alert('An error occurred while placing the order.');
-    //     }
-    // });    
-
-    
-    // document.getElementById('daily-sales-btn').classList.toggle('active', viewType === 'daily');
-    // document.getElementById('weekly-sales-btn').classList.toggle('active', viewType === 'weekly');
-    // document.getElementById('monthly-sales-btn').classList.toggle('active', viewType === 'monthly');
-    
-    // showSalesAggregrationView
 
     const byproductSalesBtn =
         document.getElementById('byproduct-sales-btn');
@@ -1383,65 +945,6 @@ if (sidebarToggle) {
 
 
 
-// nullButton.addEventListener('click',function(){
-//     signInForm.style.display="none";
-//     signUpForm.style.display="block";
-//     body.style.backgroundImage = "url('registrationBG.png')";
-
-// })
-
-// signInButton.addEventListener('click',function(){
-//     signInForm.style.display="block";
-//     signUpForm.style.display="none";
-//     body.style.backgroundImage = "url('bglogin.png')";
-// })
-
-
-// document.addEventListener('DOMContentLoaded', function () {
-//     
-//     const nullButton=document.getElementById('nullButton');
-//     const notnullButton=document.getElementById('notnullButton');
-
-
-
-
-
-
-
-
-//TOGGLE
-
-
-
-// const nulltoggleBtn = document.getElementById('toggleNullBtn');
-// const expInput = document.getElementById('expiration_date');
-// const expInputClass = document.getElementById('edit-expirationdate');
-// const notnulltoggleBtn = document.getElementById('toggleNotNullBtn');
-
-
-
-// nulltoggleBtn.addEventListener('click',function(){
-
-//     nulltoggleBtn.style.display = 'none';
-//     notnulltoggleBtn.style.display = 'inline-block';
-//     notnulltoggleBtn.style.color = 'blue'; 
-//     expInput.disabled = true;
-//     expInputClass.disabled = true;
-    
-
-
-// })
-
-// notnulltoggleBtn.addEventListener('click',function(){
-//     // expInput.type = 'date';
-//     notnulltoggleBtn.style.display = 'none';
-//     nulltoggleBtn.style.display = 'inline-block';
-//     nulltoggleBtn.style.color = 'red'; 
-//     expInput.disabled = false;
-//     expInputClass.disabled = false;
-
-
-// })
 
 
 
@@ -1501,40 +1004,6 @@ if (
 
 
 
-
-
-// function null_Button(){
-// const nullButton=document.getElementById('nullButton');
-// var expDateInput = document.getElementById('expiration_date');   
-
-//     nullButton.addEventListener('click',function(){
-//         expDateInput.setAttribute('type', 'text');
-
-//         // nullButton.style.display="flex";
-//         // nullButton.textContent = "NOT NULL?"
-// })
-// };
-
-// function notnull_Button(){
-// const notnullButton=document.getElementById('notnullButton');
-// var expDateInput = document.getElementById('expiration_date');   
-
-//     notnullButton.addEventListener('click',function(){
-//         expDateInput.setAttribute('type', 'date');
-//         // notnullButton.style.display="none";
-//         // nullButton.style.display="flex";
-//         // nullButton.textContent = "NOT NULL?"
-// })
-// };
-
-//     notnullButton.addEventListener('click',function(){
-//         expDateInput.setAttribute('type', 'text');
-//         nullButton.style.display="none";
-//         notnullButton.style.display="flex";
-//         nullButton.textContent = "NULL?";
-//     })
-
-// });
 
 
 document.getElementById("logoutBtn").addEventListener("click", function(event) {
@@ -1685,3 +1154,165 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
 
+
+$(function () {
+    const shiftReviewEndpoint = 'POS_TEST/cashier_shift.php';
+
+    function formatPeso(value) {
+        return '₱' + Number(value || 0).toLocaleString('en-PH', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '').replace(/[&<>"']/g, function (char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char];
+        });
+    }
+
+    function loadShiftReview() {
+        const $tbody = $('#shift-review-tbody');
+        const $message = $('#shift-review-message');
+
+        $message.text('Loading shifts...');
+
+        $.ajax({
+            url: shiftReviewEndpoint,
+            type: 'GET',
+            data: { action: 'list_closed' },
+            dataType: 'json',
+
+            success: function (response) {
+                if (!response.success) {
+                    $message.text(response.message || 'Unable to load shifts.');
+                    return;
+                }
+
+                const shifts = response.shifts || [];
+
+                if (!shifts.length) {
+                    $tbody.html(
+                        '<tr><td colspan="11" style="text-align:center;">' +
+                        'No closed shifts found.</td></tr>'
+                    );
+                    $message.text('');
+                    return;
+                }
+
+                const rows = shifts.map(function (shift) {
+                    const variance = Number(shift.Cash_Variance || 0);
+                    const varianceColor =
+                        variance < 0 ? '#c62828' :
+                        variance > 0 ? '#2e7d32' : '#333';
+
+                    let actionHtml = '<span>Finalized</span>';
+
+                    if (shift.Status === 'Closed') {
+                        actionHtml =
+                            '<button type="button" class="na-btn na-btn-add ' +
+                            'finalize-shift-btn" data-shift-id="' +
+                            Number(shift.Shift_ID) + '">' +
+                            'Finalize</button>';
+                    }
+
+                    return `
+                        <tr>
+                            <td>${Number(shift.Shift_ID)}</td>
+                            <td>${escapeHtml(shift.CashierName || 'Unknown')}</td>
+                            <td>${escapeHtml(shift.Opened_At || '')}</td>
+                            <td>${escapeHtml(shift.Closed_At || '')}</td>
+                            <td>${formatPeso(shift.Opening_Float)}</td>
+                            <td>${formatPeso(shift.ShiftSales)}</td>
+                            <td>${formatPeso(shift.Expected_Cash)}</td>
+                            <td>${formatPeso(shift.Actual_Cash)}</td>
+                            <td style="color:${varianceColor};font-weight:bold;">
+                                ${variance > 0 ? '+' : ''}${formatPeso(variance)}
+                            </td>
+                            <td>${escapeHtml(shift.Status)}</td>
+                            <td>${actionHtml}</td>
+                        </tr>
+                    `;
+                });
+
+                $tbody.html(rows.join(''));
+                $message.text('Shift records loaded.');
+            },
+
+            error: function (xhr) {
+                $message.text(
+                    xhr.responseJSON?.message ||
+                    'Could not load shifts. Check the endpoint path and PHP error log.'
+                );
+            }
+        });
+    }
+
+    $('#refresh-shifts-btn').on('click', loadShiftReview);
+
+    // Load records whenever the manager opens Shift Review.
+    $(document).on('click', '.nav-link', function () {
+        const onclickValue = $(this).attr('onclick') || '';
+
+        if (onclickValue.includes("'shift-review'")) {
+            loadShiftReview();
+        }
+    });
+
+    $(document).on('click', '.finalize-shift-btn', function () {
+        const shiftId = Number($(this).data('shift-id'));
+
+        if (!Number.isInteger(shiftId) || shiftId <= 0) {
+            return;
+        }
+
+        if (!window.confirm(
+            'Finalize Shift #' + shiftId + '?\n\n' +
+            'Only finalize after reviewing the cash count and variance.'
+        )) {
+            return;
+        }
+
+        const $button = $(this);
+        $button.prop('disabled', true).text('Finalizing...');
+
+        $.ajax({
+            url: shiftReviewEndpoint,
+            type: 'POST',
+            dataType: 'json',
+            data: {
+                action: 'finalize',
+                shift_id: shiftId
+            },
+
+            success: function (response) {
+                if (!response.success) {
+                    window.alert(response.message || 'Unable to finalize shift.');
+                    loadShiftReview();
+                    return;
+                }
+
+                window.alert(response.message);
+                loadShiftReview();
+            },
+
+            error: function (xhr) {
+                window.alert(
+                    xhr.responseJSON?.message ||
+                    'Unable to finalize shift. Check the PHP error log.'
+                );
+                loadShiftReview();
+            },
+
+            complete: function () {
+                $button.prop('disabled', false).text('Finalize');
+            }
+        });
+    });
+});

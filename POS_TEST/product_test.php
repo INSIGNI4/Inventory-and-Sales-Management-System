@@ -67,8 +67,86 @@ function saveProducts(){
 
     try {
 
-    // Start checkout transaction
+            // Start checkout transaction
+        // =========================================================
+        // 0. Verify logged-in cashier before starting checkout
+        // =========================================================
+
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        if (
+            !isset($_SESSION['user_id']) ||
+            (int) $_SESSION['user_id'] <= 0
+        ) {
+            throw new Exception("User is not logged in.");
+        }
+
+        $user_id = (int) $_SESSION['user_id'];
+
+
+
+        $transaction_started = false;
+        // Start checkout transaction
         $conn_pos->begin_transaction();
+
+
+        $transaction_started = true;
+        // =========================================================
+        // 0A. Verify cashier has an active shift
+        // =========================================================
+
+        $sql_shift = "
+            SELECT Shift_ID, Is_Paused
+            FROM cashier_shifts
+            WHERE User_ID = ?
+            AND Status = 'Open'
+            ORDER BY Shift_ID DESC
+            LIMIT 1
+            FOR UPDATE
+        ";
+
+        $stmt_shift = $conn_pos->prepare($sql_shift);
+        $stmt_shift->bind_param("i", $user_id);
+        $stmt_shift->execute();
+
+        // $result_shift = $stmt_shift->get_result();
+        // $active_shift = $result_shift->fetch_assoc();
+
+        // $stmt_shift->close();
+
+        // if (!$active_shift) {
+        //     throw new Exception(
+        //         "No open cashier shift found. Please open your shift before checkout."
+        //     );
+        // }
+
+        // $shift_id = (int) $active_shift['Shift_ID'];
+
+
+
+
+        $result_shift = $stmt_shift->get_result();
+        $active_shift = $result_shift->fetch_assoc();
+
+        $stmt_shift->close();
+
+        if (!$active_shift) {
+            throw new Exception(
+                "No open cashier shift found. Please open your shift before checkout."
+            );
+        }
+
+        // Block checkout while the cashier shift is paused.
+        if ((int) $active_shift['Is_Paused'] === 1) {
+            throw new Exception(
+                "This shift is paused. Complete the interim cash count and resume the shift before checkout."
+            );
+        }
+
+        $shift_id = (int) $active_shift['Shift_ID'];
+
 
 
         $date_created = date('Y-m-d H:i:s');
@@ -91,39 +169,209 @@ function saveProducts(){
         // 2. Insert Sales Summary (PARENT)
         // =========================================================
 
+        // $sql_sales = "INSERT INTO sales_test
+        //             (
+        //                 ReferenceNo,
+        //                 User_ID,
+        //                 total_amount,
+        //                 amount_tendered,
+        //                 change_amt,
+        //                 date_created,
+        //                 date_updated
+        //             )
+        //             VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+
+        //  // REVISION FOR TAX
+
+        // $sql_sales = "INSERT INTO sales_test
+        //     (
+        //         ReferenceNo,
+        //         User_ID,
+        //         total_amount,
+        //         subtotal,
+        //         tax_name,
+        //         tax_rate,
+        //         tax_amount,
+        //         amount_tendered,
+        //         change_amt,
+        //         date_created,
+        //         date_updated
+        //     )
+        //     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+
+
+
+        // REVISION FOR CASHIER
+
         $sql_sales = "INSERT INTO sales_test
-                    (
-                        ReferenceNo,
-                        User_ID,
-                        total_amount,
-                        amount_tendered,
-                        change_amt,
-                        date_created,
-                        date_updated
-                    )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)";
+            (
+                ReferenceNo,
+                User_ID,
+                Shift_ID,
+                total_amount,
+                subtotal,
+                tax_name,
+                tax_rate,
+                tax_amount,
+                amount_tendered,
+                change_amt,
+                date_created,
+                date_updated
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";        
 
 
-        // Total amount
-        $total_amount = (float)(
-            $input['totalAmt'] ??
-            $input['total_amount'] ??
-            $input['total'] ??
-            $_POST['totalAmt'] ??
-            0
-        );
 
 
-        // Change amount
-        $change_amt = (float)(
-            $input['change'] ??
-            $input['change_amt'] ??
-            $_POST['change'] ??
-            0
-        );
 
 
-        // Tendered amount
+        // // Total amount
+        // $total_amount = (float)(
+        //     $input['totalAmt'] ??
+        //     $input['total_amount'] ??
+        //     $input['total'] ??
+        //     $_POST['totalAmt'] ??
+        //     0
+        // );
+
+
+        // // Change amount
+        // $change_amt = (float)(
+        //     $input['change'] ??
+        //     $input['change_amt'] ??
+        //     $_POST['change'] ??
+        //     0
+        // );
+
+
+        // // Tendered amount
+        // $amount_tendered = (float)(
+        //     $input['tenderAmt'] ??
+        //     $input['tenderedAmt'] ??
+        //     $input['amountTendered'] ??
+        //     $input['tendered'] ??
+        //     $input['amount_tendered'] ??
+        //     $_POST['tenderAmt'] ??
+        //     0
+        // );
+
+
+
+
+
+         // REVISION FOR TAX
+
+
+        /* =========================================================
+        1. Calculate Subtotal From Cart Items
+        ========================================================= */
+
+        if (!is_array($data) || empty($data)) {
+            throw new Exception("The cart is empty or invalid.");
+        }
+
+        $subtotal = 0.00;
+        $cart_item_count = 0;
+
+        foreach ($data as $product_id => $sales_item) {
+            $pid = (int)$product_id;
+            $quantity = (int)($sales_item['orderQty'] ?? 0);
+            $unit_price = $sales_item['price'] ?? null;
+
+            if ($pid <= 0) {
+                throw new Exception("Invalid product ID.");
+            }
+
+            if ($quantity < 0) {
+                throw new Exception("Invalid quantity for Product ID " . $pid);
+            }
+
+            if ($quantity === 0) {
+                continue;
+            }
+
+            if (!is_numeric($unit_price) || (float)$unit_price < 0) {
+                throw new Exception("Invalid price for Product ID " . $pid);
+            }
+
+            $line_total = round((float)$unit_price * $quantity, 2);
+            $subtotal = round($subtotal + $line_total, 2);
+            $cart_item_count++;
+        }
+
+        if ($cart_item_count === 0) {
+            throw new Exception("The cart contains no valid items.");
+        }
+
+
+        /* =========================================================
+        2. Read Saved Tax Settings
+        ========================================================= */
+
+        $sql_tax = "SELECT
+                        Tax_Name,
+                        Tax_Rate,
+                        Tax_Mode,
+                        Is_Enabled
+                    FROM tax_settings
+                    ORDER BY Tax_ID ASC
+                    LIMIT 1";
+
+        $result_tax = $conn_pos->query($sql_tax);
+
+        if (!$result_tax || $result_tax->num_rows === 0) {
+            throw new Exception("Tax settings were not found.");
+        }
+
+        $tax_settings = $result_tax->fetch_assoc();
+
+        $tax_enabled = ((int)$tax_settings['Is_Enabled'] === 1);
+        $configured_tax_name = trim($tax_settings['Tax_Name'] ?? '');
+        $configured_tax_rate = (float)$tax_settings['Tax_Rate'];
+        $tax_mode = strtolower(trim($tax_settings['Tax_Mode'] ?? 'exclusive'));
+
+        if (
+            $configured_tax_rate < 0 ||
+            $configured_tax_rate > 100
+        ) {
+            throw new Exception("The configured tax rate is invalid.");
+        }
+
+        if (!in_array($tax_mode, ['exclusive', 'inclusive'], true)) {
+            throw new Exception("The configured tax mode is invalid.");
+        }
+
+
+        /* =========================================================
+        3. Calculate Applied Tax and Final Total
+        ========================================================= */
+
+        $tax_name = $tax_enabled ? $configured_tax_name : null;
+        $tax_rate = $tax_enabled ? $configured_tax_rate : 0.00;
+        $tax_amount = 0.00;
+
+        if (!$tax_enabled || $tax_rate == 0) {
+            $total_amount = $subtotal;
+        } elseif ($tax_mode === 'exclusive') {
+            // Tax is added on top of the subtotal.
+            $tax_amount = round($subtotal * ($tax_rate / 100), 2);
+            $total_amount = round($subtotal + $tax_amount, 2);
+        } else {
+            // Tax is already included in the displayed subtotal.
+            $total_amount = $subtotal;
+            $tax_amount = round(
+                $subtotal * ($tax_rate / (100 + $tax_rate)),
+                2
+            );
+        }
+
+
+        /* =========================================================
+        4. Read Tendered Amount and Calculate Change
+        ========================================================= */
+
         $amount_tendered = (float)(
             $input['tenderAmt'] ??
             $input['tenderedAmt'] ??
@@ -134,31 +382,120 @@ function saveProducts(){
             0
         );
 
+        if (!is_finite($amount_tendered) || $amount_tendered < 0) {
+            throw new Exception("Invalid tendered amount.");
+        }
+
+        if ($amount_tendered < $total_amount) {
+            throw new Exception(
+                "Insufficient payment. Total due: " .
+                number_format($total_amount, 2, '.', '')
+            );
+        }
+
+        $change_amt = round($amount_tendered - $total_amount, 2);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // =========================================================
         // Get Logged-in User
         // =========================================================
 
-        session_start();
+        // session_start();
 
-        if (!isset($_SESSION['user_id'])) {
-            throw new Exception("User is not logged in.");
-        }
+        // if (!isset($_SESSION['user_id'])) {
+        //     throw new Exception("User is not logged in.");
+        // }
 
-        $user_id = (int) $_SESSION['user_id'];
+        // $user_id = (int) $_SESSION['user_id'];
 
 
         // =========================================================
         // Prepare Sales INSERT
         // =========================================================
 
+
+
+
+        // $stmt_sales = $conn_pos->prepare($sql_sales);
+
+        // $stmt_sales->bind_param(
+        //     "sidddss",
+        //     $reference_no,
+        //     $user_id,
+        //     $total_amount,
+        //     $amount_tendered,
+        //     $change_amt,
+        //     $date_created,
+        //     $date_updated
+        // );
+
+        // $stmt_sales->execute();
+
+
+        // // Get newly created parent Sales_ID
+        // $sales_id = $conn_pos->insert_id;
+
+        // REVISION FOR TAX
+
+
+        // $stmt_sales = $conn_pos->prepare($sql_sales);
+
+        // $stmt_sales->bind_param(
+        //     "siddsddddss",
+        //     $reference_no,
+        //     $user_id,
+        //     $total_amount,
+        //     $subtotal,
+        //     $tax_name,
+        //     $tax_rate,
+        //     $tax_amount,
+        //     $amount_tendered,
+        //     $change_amt,
+        //     $date_created,
+        //     $date_updated
+        // );
+
+        // $stmt_sales->execute();
+
+        // // Get the newly created parent Sales_ID.
+        // $sales_id = $conn_pos->insert_id;
+
+
+
+        // REVISION FOR CASHIER
+
         $stmt_sales = $conn_pos->prepare($sql_sales);
 
         $stmt_sales->bind_param(
-            "sidddss",
+            "siiddsddddss",
             $reference_no,
             $user_id,
+            $shift_id,
             $total_amount,
+            $subtotal,
+            $tax_name,
+            $tax_rate,
+            $tax_amount,
             $amount_tendered,
             $change_amt,
             $date_created,
@@ -167,9 +504,13 @@ function saveProducts(){
 
         $stmt_sales->execute();
 
-
-        // Get newly created parent Sales_ID
         $sales_id = $conn_pos->insert_id;
+
+
+
+
+
+
 
 
         // =========================================================
@@ -510,28 +851,31 @@ function saveProducts(){
         // Everything succeeded
         $conn_pos->commit();
 
+        $transaction_started = false;
+
 
         echo json_encode([
             "success" => true,
-            "message" => "TEST order completed successfully!",
+            "message" => "Order completed successfully!",
             "sales_id" => $sales_id,
             "reference_no" => $reference_no,
             "products" => getProducts()
         ]);
 
 
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
 
-    // Undo all changes made during this checkout
-        $conn_pos->rollback();
+        if (!empty($transaction_started)) {
+            $conn_pos->rollback();
+        }
 
+        error_log("POS checkout error: " . $e->getMessage());
 
         http_response_code(500);
 
         echo json_encode([
             "success" => false,
-            "message" => "TEST Transaction Failed: "
-                . $e->getMessage()
+            "message" => "TEST Transaction Failed: " . $e->getMessage()
         ]);
     }
 }

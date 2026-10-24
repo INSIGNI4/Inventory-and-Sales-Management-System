@@ -1,106 +1,69 @@
-// document.getElementById('printBtn').addEventListener('click', function() {
-//     let reports = [
-//         { title: "Today's Newly Added Products", url: 'reports/export_newproducts_pdf.php?type=daily#toolbar=0&navpanes=0' },
-//         { title: "Today's Sales Report", url: 'reports/export_sales_pdf.php?type=daily#toolbar=0&navpanes=0' },
-//         { title: "Today's Returns Report", url: 'reports/export_returns_pdf.php?type=daily#toolbar=0&navpanes=0' },
-//         { title: "Today's Pending Restock Report", url: 'reports/export_restock_pdf.php?type=daily#toolbar=0&navpanes=0' }
-//     ];
+document.addEventListener('DOMContentLoaded', function () {
+    const reportTypeSelect = document.getElementById('reportType');
+    const cards = document.querySelectorAll('[data-report-card]');
+    const buttons = document.querySelectorAll('.generate-report');
 
-//     document.body.innerHTML = '<h1 style="text-align:center; margin-bottom:30px;">Today\'s Reports</h1><div id="printGrid"></div>';
+    function showSelectedReport() {
+        if (!reportTypeSelect) return;
+        const selected = reportTypeSelect.value;
 
-//     const grid = document.getElementById('printGrid');
-//     grid.style.display = 'grid';
-//     grid.style.gridTemplateColumns = '1fr 1fr';
-//     grid.style.gridTemplateRows = 'auto auto';
-//     grid.style.gap = '20px';
-
-//     reports.forEach(report => {
-//         let card = document.createElement('div');
-//         card.style.display = 'flex';
-//         card.style.flexDirection = 'column';
-//         card.style.border = '1px solid #ccc';
-//         card.style.borderRadius = '10px';
-//         card.style.overflow = 'hidden';
-//         card.style.background = '#fff';
-//         card.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-
-//         let header = document.createElement('div');
-//         header.innerText = report.title;
-//         header.style.textAlign = 'center';
-//         header.style.padding = '10px';
-//         header.style.fontWeight = 'bold';
-//         header.style.backgroundColor = 'fff';
-//         header.style.color = 'rgba(0,0,0,0.1)';
-//         card.appendChild(header);
-
-//         let iframe = document.createElement('iframe');
-//         iframe.src = report.url;
-//         iframe.style.width = '100%';
-//         iframe.style.height = '450px';
-//         iframe.style.border = 'none';
-//         card.appendChild(iframe);
-
-//         grid.appendChild(card);
-//     });
-
-//     setTimeout(() => window.print(), 1000);
-// });
-
-
-
-
-document.getElementById('generateReportBtn').addEventListener('click', function () {
-    const reportType = document.getElementById('reportType').value;
-    const dateFrom = document.getElementById('dateFrom').value;
-    const dateTo = document.getElementById('dateTo').value;
-
-    if (!dateFrom || !dateTo) {
-        alert('Please select a date range.');
-        return;
+        cards.forEach(function (card) {
+            card.style.display = card.dataset.reportCard === selected ? 'flex' : 'none';
+        });
     }
 
-    if (dateFrom > dateTo) {
-        alert('The starting date cannot be later than the ending date.');
-        return;
+    if (reportTypeSelect) {
+        reportTypeSelect.addEventListener('change', showSelectedReport);
+        showSelectedReport();
     }
 
-    const url = 'reports/get_report.php?type=' + encodeURIComponent(reportType) +
-        '&date_from=' + encodeURIComponent(dateFrom) +
-        '&date_to=' + encodeURIComponent(dateTo);
+    const reportConfig = {
+        historical_inventory: {
+            from: 'inventoryDateFrom',
+            to: 'inventoryDateTo',
+            recipient: 'inventoryRecipient',
+            endpoint: 'reports/export_historical_inventory_pdf.php'
+        },
+        sales_profit: {
+            from: 'salesDateFrom',
+            to: 'salesDateTo',
+            recipient: 'salesRecipient',
+            endpoint: 'reports/export_sales_profit_pdf.php'
+        },
+        purchase_restocking: {
+            from: 'purchaseDateFrom',
+            to: 'purchaseDateTo',
+            recipient: 'purchaseRecipient',
+            endpoint: 'reports/export_purchase_restocking_pdf.php'
+        }
+    };
 
-    document.getElementById('reportFrame').src = url;
-});
+    buttons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            const config = reportConfig[button.dataset.report];
+            if (!config) return;
 
-document.getElementById('exportPdfBtn').addEventListener('click', function () {
-    const reportType = document.getElementById('reportType').value;
-    const dateFrom = document.getElementById('dateFrom').value;
-    const dateTo = document.getElementById('dateTo').value;
+            const dateFrom = document.getElementById(config.from).value;
+            const dateTo = document.getElementById(config.to).value;
+            const recipient = document.getElementById(config.recipient).value.trim();
 
-    if (!dateFrom || !dateTo) {
-        alert('Please select a date range.');
-        return;
-    }
+            if (!dateFrom || !dateTo) {
+                alert('Please select both the start date and end date.');
+                return;
+            }
 
-    if (dateFrom > dateTo) {
-        alert('The starting date cannot be later than the ending date.');
-        return;
-    }
+            if (dateFrom > dateTo) {
+                alert('The start date cannot be later than the end date.');
+                return;
+            }
 
-    window.open(
-        'reports/export_report_pdf.php?type=' + encodeURIComponent(reportType) +
-        '&date_from=' + encodeURIComponent(dateFrom) +
-        '&date_to=' + encodeURIComponent(dateTo),
-        '_blank'
-    );
-});
+            const params = new URLSearchParams({
+                date_from: dateFrom,
+                date_to: dateTo,
+                recipient: recipient
+            });
 
-document.getElementById('printBtn').addEventListener('click', function () {
-    const frame = document.getElementById('reportFrame');
-
-    if (!frame.src || frame.src === window.location.href) {
-        alert('Please generate a report first.');
-        return;
-    }
-
-    frame.contentWindow.print();
+            window.open(config.endpoint + '?' + params.toString(), '_blank');
+        });
+    });
 });

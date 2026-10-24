@@ -1,0 +1,239 @@
+
+/* Real Stock Adjustment Page */
+#real-stock-adjustments {
+    padding: 0;
+    background-color: #ecf0f1;
+    color: #333;
+    box-sizing: border-box;
+}
+
+#real-stock-adjustments .stock-adjustment-page {
+    width: 100%;
+    padding: 0;
+    color: #333;
+    box-sizing: border-box;
+}
+
+/* Header - match other dashboard tabs */
+#real-stock-adjustments .stock-adjustment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin: 0;
+    padding: 15px 20px;
+    background-color: #1a1a1a;
+    color: white;
+    border-bottom: 3px solid #c0392b;
+    box-sizing: border-box;
+}
+
+#real-stock-adjustments .stock-adjustment-header h2 {
+    margin: 0;
+    padding: 0;
+    color: white;
+    font-size: 22px;
+    border: none;
+}
+
+#real-stock-adjustments .stock-adjustment-header p {
+    margin: 8px 0 0;
+    color: #ccc;
+}
+
+/* Content cards */
+#real-stock-adjustments .stock-adjustment-card {
+    margin: 20px;
+    padding: 20px;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+}
+
+#real-stock-adjustments .stock-adjustment-card h3 {
+    margin: 0 0 18px;
+    padding-bottom: 10px;
+    color: #333;
+    font-size: 18px;
+    border-bottom: 2px solid #c0392b;
+}
+
+/* Form fields */
+#real-stock-adjustments .stock-adjustment-card label {
+    display: block;
+    margin: 12px 0 6px;
+    color: #333;
+    font-weight: bold;
+}
+
+#real-stock-adjustments .stock-adjustment-card input,
+#real-stock-adjustments .stock-adjustment-card select,
+#real-stock-adjustments .stock-adjustment-card textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    background-color: #fff;
+    color: #333;
+}
+
+#real-stock-adjustments .stock-adjustment-card input:focus,
+#real-stock-adjustments .stock-adjustment-card select:focus,
+#real-stock-adjustments .stock-adjustment-card textarea:focus {
+    outline: none;
+    border-color: #c0392b;
+    box-shadow: 0 0 0 2px rgba(192, 57, 43, 0.12);
+}
+
+#real-stock-adjustments .stock-adjustment-card textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Buttons */
+#real-stock-adjustments .stock-adjustment-btn,
+#real-stock-adjustments .stock-adjustment-cancel {
+    padding: 8px 15px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#real-stock-adjustments .stock-adjustment-btn {
+    background-color: #c0392b;
+    color: white;
+}
+
+#real-stock-adjustments .stock-adjustment-btn:hover {
+    background-color: #a93226;
+}
+
+#real-stock-adjustments .stock-adjustment-cancel {
+    background-color: #343a40;
+    color: white;
+}
+
+#real-stock-adjustments .stock-adjustment-cancel:hover {
+    background-color: #23272b;
+}
+
+#real-stock-adjustments .stock-adjustment-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+/* History table */
+#real-stock-adjustments .stock-adjustment-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+#real-stock-adjustments .stock-adjustment-card table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    font-size: 14px;
+}
+
+#real-stock-adjustments .stock-adjustment-card th {
+    padding: 10px 12px;
+    background-color: #343a40;
+    color: white;
+    font-weight: bold;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    white-space: nowrap;
+}
+
+#real-stock-adjustments .stock-adjustment-card td {
+    padding: 10px 12px;
+    color: #333;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    white-space: nowrap;
+}
+
+#real-stock-adjustments .stock-adjustment-card tbody tr:hover {
+    background-color: #ffd4d4;
+}
+
+/* Respect hidden form elements */
+#real-stock-adjustments [hidden] {
+    display: none !important;
+}
+
+/* Responsive layout */
+@media (max-width: 700px) {
+    #real-stock-adjustments .stock-adjustment-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    #real-stock-adjustments .stock-adjustment-card {
+        margin: 12px;
+        padding: 15px;
+    }
+
+    #real-stock-adjustments .stock-adjustment-actions {
+        flex-direction: column;
+    }
+
+    #real-stock-adjustments .stock-adjustment-actions button {
+        width: 100%;
+    }
+}
+
+#real-stock-adjustments .stock-adjustment-add-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    background-color: #c0392b;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+#real-stock-adjustments .stock-adjustment-add-btn:hover {
+    background-color: #a93226;
+    transform: translateY(-1px);
+}
+
+#real-stock-adjustments .stock-adjustment-add-btn:active {
+    transform: translateY(0);
+}
+
+#real-stock-adjustments .stock-adjustment-header h3 {
+    margin: 0;
+    padding: 0;
+    color: #333;
+    font-size: 20px;
+    border: none;
+}
+
+#real-stock-adjustments .stock-adjustment-add-btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}

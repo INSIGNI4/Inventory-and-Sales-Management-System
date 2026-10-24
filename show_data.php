@@ -59,35 +59,15 @@ function fetchTableData($conn, $table) {
 
     // Special query for Restock
     // Adds Product Name and Supplier Name
+    // if ($table === 'restock') {
+
+     
+
+
+
+    // Special query for Restock
+    // Adds Product Name, Supplier Details, and Historical Purchase Costs
     if ($table === 'restock') {
-
-        // $sql = "
-        //     SELECT
-        //         r.*,
-
-        //         p.ProductName,
-        //         s.Email,
-        //         s.Location,
-
-        //         CONCAT_WS(
-        //             ' ',
-        //             s.SupplierFName,
-        //             s.SupplierLName
-        //         ) AS SupplierName
-
-        //     FROM restock r
-
-        //     LEFT JOIN product p
-        //         ON p.Product_ID = r.Product_ID
-
-        //     LEFT JOIN supplier s
-        //         ON s.Supplier_ID = r.Supplier_ID
-
-        //     ORDER BY r.Orestock_ID DESC
-        // ";
-
-
-
 
         $sql = "
             SELECT
@@ -98,22 +78,30 @@ function fetchTableData($conn, $table) {
                 s.Address,
                 s.City,
                 s.CompanyName AS SupplierName,
-                s.ContactPerson
+                s.ContactPerson,
+
+                -- Saved supplier purchase cost at order creation
+                r.PurchaseUnitCost,
+
+                -- Total purchase cost for the ordered quantity
+                CASE
+                    WHEN r.PurchaseUnitCost IS NOT NULL
+                    THEN r.Quantity * r.PurchaseUnitCost
+                    ELSE NULL
+                END AS OrderCost
+
             FROM restock r
+
             LEFT JOIN product p
                 ON p.Product_ID = r.Product_ID
+
             LEFT JOIN supplier s
                 ON s.Supplier_ID = r.Supplier_ID
+
             ORDER BY r.Orestock_ID DESC
         ";
 
-
-        
-
-
-
-
-    } elseif ($table === 'sales_item_test') {
+    }elseif ($table === 'sales_item_test') {
 
         $sql = "
             SELECT *
@@ -131,43 +119,151 @@ function fetchTableData($conn, $table) {
             LIMIT 50
         ";
 
-    } elseif ($table === 'inventory') {
+    }
+    elseif ($table === 'inventory') {
 
         $sql = "
             SELECT
                 r.*,
-                
-                s.Email,
-                s.PhoneNumber,
-                s.Address,
-                s.City,
-                s.CompanyName AS SupplierName,
-                s.ContactPerson
+                offers.SupplierName,
+                offers.Email,
+                offers.PhoneNumber,
+                offers.Address,
+                offers.City,
+                offers.ContactPerson
             FROM inventory r
-            LEFT JOIN supplier s
-                ON s.Supplier_ID = r.Supplier_ID
-            
+            LEFT JOIN (
+                SELECT
+                    ps.Product_ID,
+                    GROUP_CONCAT(
+                        DISTINCT s.CompanyName
+                        ORDER BY s.CompanyName
+                        SEPARATOR ', '
+                    ) AS SupplierName,
+                    GROUP_CONCAT(
+                        DISTINCT s.Email
+                        ORDER BY s.CompanyName
+                        SEPARATOR ', '
+                    ) AS Email,
+                    GROUP_CONCAT(
+                        DISTINCT s.PhoneNumber
+                        ORDER BY s.CompanyName
+                        SEPARATOR ', '
+                    ) AS PhoneNumber,
+                    GROUP_CONCAT(
+                        DISTINCT s.Address
+                        ORDER BY s.CompanyName
+                        SEPARATOR ', '
+                    ) AS Address,
+                    GROUP_CONCAT(
+                        DISTINCT s.City
+                        ORDER BY s.CompanyName
+                        SEPARATOR ', '
+                    ) AS City,
+                    GROUP_CONCAT(
+                        DISTINCT s.ContactPerson
+                        ORDER BY s.CompanyName
+                        SEPARATOR ', '
+                    ) AS ContactPerson
+                FROM product_supplier ps
+                INNER JOIN supplier s
+                    ON s.Supplier_ID = ps.Supplier_ID
+                WHERE ps.IsActive = 1
+                    AND s.IsArchived = 0
+                GROUP BY ps.Product_ID
+            ) offers
+                ON offers.Product_ID = r.Product_ID
+                WHERE r.Product_ID IN (
+                SELECT Product_ID
+                FROM product
+                WHERE IsArchived = 0
+)    
         ";
+
+    
+    
+    // elseif ($table === 'product') {
+
+    //     $sql = "
+    //         SELECT
+    //             r.*,
+                
+    //             s.Email,
+    //             s.PhoneNumber,
+    //             s.Address,
+    //             s.City,
+    //             s.CompanyName AS SupplierName,
+    //             s.ContactPerson
+    //         FROM product r
+    //         LEFT JOIN supplier s
+    //             ON s.Supplier_ID = r.Supplier_ID
+            
+    //     ";
+
+    // } elseif ($table === 'product') {
+
+        // $sql = "
+        //     SELECT
+        //         p.*,
+        //         offers.SupplierName
+        //     FROM product p
+        //     LEFT JOIN (
+        //         SELECT
+        //             ps.Product_ID,
+        //             GROUP_CONCAT(
+        //                 DISTINCT s.CompanyName
+        //                 ORDER BY s.CompanyName
+        //                 SEPARATOR ', '
+        //             ) AS SupplierName
+        //         FROM product_supplier ps
+        //         INNER JOIN supplier s
+        //             ON s.Supplier_ID = ps.Supplier_ID
+        //         WHERE ps.IsActive = 1
+        //         GROUP BY ps.Product_ID
+        //     ) offers
+        //         ON offers.Product_ID = p.Product_ID
+        // ";
+
 
 
     } elseif ($table === 'product') {
 
         $sql = "
             SELECT
-                r.*,
-                
-                s.Email,
-                s.PhoneNumber,
-                s.Address,
-                s.City,
-                s.CompanyName AS SupplierName,
-                s.ContactPerson
-            FROM product r
-            LEFT JOIN supplier s
-                ON s.Supplier_ID = r.Supplier_ID
-            
+                p.*,
+                offers.SupplierName
+            FROM product p
+            LEFT JOIN (
+                SELECT
+                    ps.Product_ID,
+                    GROUP_CONCAT(
+                        DISTINCT s.CompanyName
+                        ORDER BY s.CompanyName
+                        SEPARATOR ', '
+                    ) AS SupplierName
+                FROM product_supplier ps
+                INNER JOIN supplier s
+                    ON s.Supplier_ID = ps.Supplier_ID
+                WHERE ps.IsActive = 1
+                AND s.IsArchived = 0
+                GROUP BY ps.Product_ID
+            ) offers
+                ON offers.Product_ID = p.Product_ID
+            WHERE p.IsArchived = 0
         ";
 
+
+
+    } elseif ($table === 'supplier') {
+
+        // Show active suppliers only.
+        // Archived suppliers remain available in Archive & Restore.
+        $sql = "
+            SELECT *
+            FROM supplier
+            WHERE IsArchived = 0
+            ORDER BY CompanyName ASC
+        ";
 
 
 

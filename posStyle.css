@@ -319,3 +319,114 @@ hr {
 .searchResultEntry * {
     pointer-events: none;
 }   
+
+
+
+
+
+
+
+/* =========================================
+   POS DIALOG — BLACK & GRAY THEME
+   ========================================= */
+
+.bootstrap-dialog.pos-dark-dialog .modal-content {
+    background: #f2f2f2;
+    color: #222;
+    border: 1px solid #555;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Dark header */
+.bootstrap-dialog.pos-dark-dialog .modal-header {
+    background: #222 !important;
+    color: #fff !important;
+    border-bottom: 1px solid #555;
+    padding: 15px 20px;
+}
+
+.bootstrap-dialog.pos-dark-dialog .bootstrap-dialog-title,
+.bootstrap-dialog.pos-dark-dialog .modal-title {
+    color: #fff !important;
+    font-weight: 700;
+}
+
+/* Light gray body */
+.bootstrap-dialog.pos-dark-dialog .modal-body {
+    background: #f2f2f2 !important;
+    color: #222 !important;
+    padding: 20px;
+}
+
+/* Gray footer */
+.bootstrap-dialog.pos-dark-dialog .modal-footer {
+    background: #e5e5e5 !important;
+    border-top: 1px solid #ccc;
+    padding: 12px 20px;
+}
+
+/* Input fields */
+.bootstrap-dialog.pos-dark-dialog .form-control {
+    background: #fff;
+    color: #222;
+    border: 1px solid #888;
+    border-radius: 5px;
+}
+
+.bootstrap-dialog.pos-dark-dialog .form-control:focus {
+    border-color: #333;
+    box-shadow: 0 0 0 2px rgba(40, 40, 40, 0.15);
+}
+
+/* Cancel button */
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-default,
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-secondary {
+    background: #d6d6d6 !important;
+    color: #222 !important;
+    border: 1px solid #999;
+    font-weight: 600;
+}
+
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-default:hover,
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-secondary:hover {
+    background: #bfbfbf !important;
+    color: #111 !important;
+}
+
+/* Confirm button */
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-primary {
+    background: #292929 !important;
+    color: #fff !important;
+    border: 1px solid #111;
+    font-weight: 600;
+}
+
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-primary:hover {
+    background: #444 !important;
+    color: #fff !important;
+}
+
+/* Product name */
+.bootstrap-dialog.pos-dark-dialog .dialogProductName {
+    color: #222 !important;
+}
+
+/* Close button */
+.bootstrap-dialog.pos-dark-dialog .close {
+    color: #fff !important;
+    opacity: 0.85;
+    text-shadow: none;
+}
+
+.bootstrap-dialog.pos-dark-dialog .close:hover {
+    color: #ccc !important;
+    opacity: 1;
+}
+
+/* Checkout-specific styling: preserve existing wide layout */
+.bootstrap-dialog.checkoutDialog .modal-dialog {
+    max-width: 919px !important;
+    width: 100%;
+}

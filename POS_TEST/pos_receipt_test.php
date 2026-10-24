@@ -53,9 +53,25 @@ $items = $sale_data['items'];
 
 <div class="receipt-box">
     <div class="text-center">
-        <h2>STORE RECEIPT</h2>
+        <h2>SALE RECEIPT</h2>
         <p>Receipt #: <?php echo htmlspecialchars($sale['ReferenceNo']); ?></p>
         <p>Date: <?php echo htmlspecialchars($sale['date_created']); ?></p>
+
+    <!-- REVISION FOR NAME -->
+        <span>
+        <p>
+            Cashier ID:
+            <?php echo htmlspecialchars((string)($sale['User_ID'] ?? 'N/A')); ?> 
+            NAME: 
+            <?php echo htmlspecialchars($sale['CashierName'] ?? 'Unknown'); ?>
+        </p>
+        <p>
+            
+        </p>
+        </span>
+        
+
+
     </div>
 
     <div class="border-top border-bottom" style="margin: 8px 0; padding: 4px 0;">
@@ -87,7 +103,7 @@ $items = $sale_data['items'];
         </tbody>
     </table>
 
-    <div class="border-top" style="margin-top: 10px; padding-top: 5px;">
+    <!-- <div class="border-top" style="margin-top: 10px; padding-top: 5px;">
         <table>
             <tr>
                 <td><strong>Total Amount:</strong></td>
@@ -102,7 +118,68 @@ $items = $sale_data['items'];
                 <td class="text-right">₱<?php echo number_format($sale['change_amt'], 2); ?></td>
             </tr>
         </table>
+    </div> -->
+
+
+    <!-- REVISION FOR TAX -->
+
+
+    <div class="border-top" style="margin-top: 10px; padding-top: 5px;">
+        <table>
+            <tr>
+                <td>Subtotal:</td>
+                <td class="text-right">
+                    ₱<?php echo number_format((float)($sale['subtotal'] ?? $sale['total_amount']), 2); ?>
+                </td>
+            </tr>
+
+            <?php
+                $taxRate = (float)($sale['tax_rate'] ?? 0);
+                $taxAmount = (float)($sale['tax_amount'] ?? 0);
+                $taxName = trim((string)($sale['tax_name'] ?? ''));
+            ?>
+
+            <?php if ($taxName !== '' && $taxRate > 0): ?>
+                <tr>
+                    <td>
+                        <?php
+                            echo htmlspecialchars($taxName);
+                            echo ' (' . number_format($taxRate, 2) . '%)';
+                        ?>:
+                    </td>
+                    <td class="text-right">
+                        ₱<?php echo number_format($taxAmount, 2); ?>
+                    </td>
+                </tr>
+            <?php endif; ?>
+
+            <tr>
+                <td><strong>Total Amount:</strong></td>
+                <td class="text-right">
+                    <strong>₱<?php echo number_format((float)$sale['total_amount'], 2); ?></strong>
+                </td>
+            </tr>
+
+            <tr>
+                <td>Tendered:</td>
+                <td class="text-right">
+                    ₱<?php echo number_format((float)$sale['amount_tendered'], 2); ?>
+                </td>
+            </tr>
+
+            <tr>
+                <td>Change:</td>
+                <td class="text-right">
+                    ₱<?php echo number_format((float)$sale['change_amt'], 2); ?>
+                </td>
+            </tr>
+        </table>
     </div>
+
+
+
+
+
 
     <div class="text-center" style="margin-top: 15px;">
         <p>Thank you for your purchase!</p>

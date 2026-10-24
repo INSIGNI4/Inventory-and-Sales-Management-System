@@ -560,3 +560,317 @@ hr {
 .productResultContainer .productPrice {
     overflow-wrap: anywhere;
 }
+
+
+.na-btn-add { 
+    background-color: #d14d05; 
+    color: white; 
+}
+
+
+.na-btn-add:hover { 
+    background-color: #8b0202; 
+    border-color: white;
+    color: white; 
+    transition: .4s;
+}
+
+
+
+.na-btn-return { 
+    background-color: #0053ad; 
+    color: white; 
+}
+
+
+.na-btn-return:hover { 
+    background-color: #26004d5d; 
+    border-color: white;
+    color: white; 
+    transition: .4s;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Compact subtotal and tax rows in the checkout summary */
+.checkoutDialog .checkout-summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin: 0;
+    padding: 0;
+    table-layout: auto;
+}
+
+.checkoutDialog .checkout-summary-table tr {
+    margin: 0;
+    padding: 0;
+}
+
+.checkoutDialog .checkout-summary-table td {
+    padding: 5px 0;
+    margin: 0;
+    border: none;
+    vertical-align: middle;
+    line-height: 1.4;
+}
+
+.checkoutDialog .checkout-summary-table .checkout-summary-label {
+    text-align: left;
+    white-space: normal;
+}
+
+.checkoutDialog .checkout-summary-table .checkout-summary-value {
+    text-align: right;
+    white-space: nowrap;
+}
+
+
+
+
+
+
+
+
+/* Remove excessive spacing in the checkout tax summary */
+.checkoutDialog .checkout-summary-list {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.checkoutDialog .checkout-summary-list > div {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.checkoutDialog .checkout-summary-list table {
+    margin: 0 !important;
+    padding: 0 !important;
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+}
+
+.checkoutDialog .checkout-summary-list tr,
+.checkoutDialog .checkout-summary-list td {
+    margin: 0 !important;
+}
+
+.checkoutDialog .checkout-summary-list td {
+    padding: 4px 0 !important;
+    line-height: 1.4 !important;
+}
+
+.checkoutDialog .checkout-payment-divider {
+    margin: 8px 0 !important;
+}
+
+.checkoutDialog .checkout-final-total {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.pos-header-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    text-decoration: none;
+    padding: 5px;
+    line-height: 1;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.pos-header-icon:hover,
+.pos-header-icon:focus {
+    color: #ddd;
+    text-decoration: none;
+    background: transparent;
+    outline: none;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==========================================
+   POS DIALOGS — BLACK & GRAY THEME
+   ========================================== */
+
+/* Main dialog */
+.bootstrap-dialog.pos-dark-dialog .modal-content {
+    background: #f0f0f0 !important;
+    color: #222 !important;
+    border: 1px solid #555 !important;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.30);
+}
+
+/* Black header */
+.bootstrap-dialog.pos-dark-dialog .modal-header {
+    background: #252525 !important;
+    color: #fff !important;
+    border-bottom: 1px solid #555 !important;
+    padding: 15px 20px;
+}
+
+.bootstrap-dialog.pos-dark-dialog .bootstrap-dialog-title {
+    color: #fff !important;
+    font-weight: 700;
+}
+
+/* Light gray dialog body */
+.bootstrap-dialog.pos-dark-dialog .modal-body {
+    background: #f0f0f0 !important;
+    color: #222 !important;
+    padding: 20px;
+}
+
+/* Gray footer */
+.bootstrap-dialog.pos-dark-dialog .modal-footer {
+    background: #dedede !important;
+    border-top: 1px solid #bbb !important;
+    padding: 12px 20px;
+}
+
+/* Product name and dialog text */
+.bootstrap-dialog.pos-dark-dialog .dialogProductName,
+.bootstrap-dialog.pos-dark-dialog .modal-body p,
+.bootstrap-dialog.pos-dark-dialog .modal-body label {
+    color: #222 !important;
+}
+
+/* Input fields */
+.bootstrap-dialog.pos-dark-dialog .form-control {
+    background: #fff !important;
+    color: #222 !important;
+    border: 1px solid #888 !important;
+    border-radius: 5px;
+}
+
+.bootstrap-dialog.pos-dark-dialog .form-control:focus {
+    border-color: #333 !important;
+    box-shadow: 0 0 0 2px rgba(40, 40, 40, 0.15);
+}
+
+/* Cancel and secondary buttons */
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-default,
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-secondary {
+    background: #d0d0d0 !important;
+    color: #222 !important;
+    border: 1px solid #999 !important;
+    font-weight: 600;
+}
+
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-default:hover,
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-secondary:hover {
+    background: #b8b8b8 !important;
+    color: #111 !important;
+}
+
+/* Confirm and primary buttons */
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-primary {
+    background: #292929 !important;
+    color: #fff !important;
+    border: 1px solid #111 !important;
+    font-weight: 600;
+}
+
+.bootstrap-dialog.pos-dark-dialog .modal-footer .btn-primary:hover {
+    background: #454545 !important;
+    color: #fff !important;
+}
+
+/* Close button */
+.bootstrap-dialog.pos-dark-dialog .close {
+    color: #fff !important;
+    opacity: 0.85;
+    text-shadow: none;
+}
+
+.bootstrap-dialog.pos-dark-dialog .close:hover {
+    color: #ccc !important;
+    opacity: 1;
+}
+
+/* Checkout dialog — preserve its existing wide layout */
+.bootstrap-dialog.checkoutDialog.pos-dark-dialog .modal-dialog {
+    max-width: 919px !important;
+    width: 100%;
+}

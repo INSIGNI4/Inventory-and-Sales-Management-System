@@ -1,370 +1,288 @@
+
 <?php
 
 header('Content-Type: application/json');
 
 require_once __DIR__ . '/connect.php';
 
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
-/*
-|--------------------------------------------------------------------------
-| CURRENT AI FORECAST CYCLE
-|--------------------------------------------------------------------------
-|
-| We use the current future predictions as the active forecast cycle.
-|
-*/
-
-$sql = "
-
-    SELECT
-        p.Product_ID,
-        p.ProductName,
-        p.Supplier_ID,
-        s.CompanyName AS SupplierName,
-        CONCAT_WS(
-            ', ',
-            NULLIF(s.Address, ''),
-            NULLIF(s.City, '')
-        ) AS SupplierLocation,
-        s.PhoneNumber,
-        s.Email,
-        p.SupplierPrice,
-        p.Pack_Size,
-
-        COALESCE(inv.CurrentStock, 0) AS CurrentStock,
-
-        ROUND(
-            SUM(mp.Predicted_Demand),
-            2
-        ) AS PredictedDemand
-
-
-    FROM point_of_sale.ml_predictions mp
-
-
-    INNER JOIN login.product p
-        ON p.Product_ID = mp.Product_ID
-
-
-    LEFT JOIN login.supplier s
-        ON s.Supplier_ID = p.Supplier_ID
-
-
+try {
     /*
     |--------------------------------------------------------------------------
-    | CURRENT PHYSICAL STOCK
+    | AI RECOMMENDATIONS - CURRENT 14-DAY FORECAST
+    |--------------------------------------------------------------------------
+    | Uses:
+    | - Future predictions for the next 14 days
+    | - Current physical stock from login.expiration
+    | - Active supplier offers from login.product_supplier
+    | - Lowest-priced active offer as the default supplier
+    | - Pack-size multiples for recommended quantities
     |--------------------------------------------------------------------------
     */
 
-    LEFT JOIN (
-
+    $sql = "
         SELECT
-            Product_ID,
-            SUM(Quantity) AS CurrentStock
+            p.Product_ID,
+            p.ProductName,
+            p.Pack_Size,
 
-        FROM login.expiration
+            ps.ProductSupplier_ID,
+            ps.Supplier_ID,
+            ps.SupplierPrice,
 
-        GROUP BY Product_ID
+            s.CompanyName AS SupplierName,
 
-    ) inv
+            CONCAT_WS(
+                ', ',
+                NULLIF(s.Address, ''),
+                NULLIF(s.City, '')
+            ) AS SupplierLocation,
 
-        ON inv.Product_ID = p.Product_ID
+            s.PhoneNumber,
+            s.Email,
 
+            COALESCE(inv.CurrentStock, 0) AS CurrentStock,
 
-    /*
-    |--------------------------------------------------------------------------
-    | CURRENT FORECAST CYCLE
-    |--------------------------------------------------------------------------
-    */
+            ROUND(
+                SUM(mp.Predicted_Demand),
+                2
+            ) AS PredictedDemand
 
-    CROSS JOIN (
+        FROM point_of_sale.ml_predictions mp
 
-        SELECT
+        INNER JOIN login.product p
+            ON p.Product_ID = mp.Product_ID
 
-            MIN(ForecastDate) AS CycleStart,
-            MAX(ForecastDate) AS CycleEnd
+        /*
+        |--------------------------------------------------------------------------
+        | SELECT ONE ACTIVE SUPPLIER OFFER PER PRODUCT
+        |--------------------------------------------------------------------------
+        | Lowest purchase price wins.
+        | ProductSupplier_ID breaks ties consistently.
+        |--------------------------------------------------------------------------
+        */
 
-        FROM point_of_sale.ml_predictions
+        INNER JOIN login.product_supplier ps
+            ON ps.ProductSupplier_ID = (
+                SELECT ps2.ProductSupplier_ID
+                FROM login.product_supplier ps2
+                WHERE
+                    ps2.Product_ID = p.Product_ID
+                    AND ps2.IsActive = 1
+                ORDER BY
+                    ps2.SupplierPrice ASC,
+                    ps2.ProductSupplier_ID ASC
+                LIMIT 1
+            )
+
+        INNER JOIN login.supplier s
+            ON s.Supplier_ID = ps.Supplier_ID
+
+        /*
+        |--------------------------------------------------------------------------
+        | CURRENT PHYSICAL STOCK
+        |--------------------------------------------------------------------------
+        */
+
+        LEFT JOIN (
+            SELECT
+                Product_ID,
+                SUM(Quantity) AS CurrentStock
+            FROM login.expiration
+            GROUP BY Product_ID
+        ) inv
+            ON inv.Product_ID = p.Product_ID
+
+        /*
+        |--------------------------------------------------------------------------
+        | CURRENT 14-DAY FORECAST
+        |--------------------------------------------------------------------------
+        */
 
         WHERE
-            ForecastDate > CURDATE()
-
-            AND ForecastDate
-                <= DATE_ADD(
-                    CURDATE(),
-                    INTERVAL 14 DAY
-                )
-
-    ) cycle
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | CURRENT 14-DAY FORECAST
-    |--------------------------------------------------------------------------
-    */
-
-    WHERE
-
-        mp.ForecastDate > CURDATE()
-
-        AND mp.ForecastDate
-            <= DATE_ADD(
+            mp.ForecastDate > CURDATE()
+            AND mp.ForecastDate <= DATE_ADD(
                 CURDATE(),
                 INTERVAL 14 DAY
             )
 
+            /*
+            |--------------------------------------------------------------------------
+            | DO NOT SHOW PRODUCTS ALREADY BEING HANDLED BY RESTOCK
+            |--------------------------------------------------------------------------
+            */
+
+            AND NOT EXISTS (
+                SELECT 1
+                FROM login.restock r
+                WHERE
+                    r.Product_ID = p.Product_ID
+                    AND r.Status IN (
+                        'Requested',
+                        'Partially-Received',
+                        'Backorder-Fulfillment'
+                    )
+            )
+
+        GROUP BY
+            p.Product_ID,
+            p.ProductName,
+            p.Pack_Size,
+            ps.ProductSupplier_ID,
+            ps.Supplier_ID,
+            ps.SupplierPrice,
+            s.CompanyName,
+            s.Address,
+            s.City,
+            s.PhoneNumber,
+            s.Email,
+            inv.CurrentStock
 
         /*
         |--------------------------------------------------------------------------
-        | DO NOT SHOW A PRODUCT THAT WAS ALREADY HANDLED
-        | BY AN AI RECOMMENDATION FOR THIS CYCLE
+        | ONLY PRODUCTS WITH A SHORTAGE
         |--------------------------------------------------------------------------
         */
-       
 
+        HAVING
+            PredictedDemand > COALESCE(inv.CurrentStock, 0)
 
-        AND NOT EXISTS (
-            SELECT 1
-            FROM login.restock r
-            WHERE
-                r.Product_ID = p.Product_ID
-                AND r.Status IN (
-                    'Requested',
-                    'Partially-Received',
-                    'Backorder-Fulfillment'
-                )
-        )        
+        ORDER BY
+            (
+                PredictedDemand
+                - COALESCE(inv.CurrentStock, 0)
+            ) DESC
+    ";
 
+    $result = mysqli_query($conn, $sql);
 
-    GROUP BY
-        p.Product_ID,
-        p.ProductName,
-        p.Supplier_ID,
-        s.CompanyName,
-        s.Address,
-        s.City,
-        s.PhoneNumber,
-        s.Email,
-        p.SupplierPrice,
-        p.Pack_Size,
-        inv.CurrentStock
+    $data = [];
+    $estimatedGrandTotal = 0.0;
 
+    while ($row = mysqli_fetch_assoc($result)) {
 
-    /*
-    |--------------------------------------------------------------------------
-    | ONLY PRODUCTS WITH A SHORTAGE
-    |--------------------------------------------------------------------------
-    */
+        $currentStock = (float) $row['CurrentStock'];
+        $predictedDemand = (float) $row['PredictedDemand'];
 
-    HAVING
+        /*
+        |--------------------------------------------------------------------------
+        | NET DEMAND
+        |--------------------------------------------------------------------------
+        */
 
-        PredictedDemand >
-        COALESCE(
-            inv.CurrentStock,
-            0
-        )
+        $netDemand = $predictedDemand - $currentStock;
 
+        /*
+        |--------------------------------------------------------------------------
+        | PACK SIZE
+        |--------------------------------------------------------------------------
+        */
 
-    ORDER BY
+        $packSize = (int) $row['Pack_Size'];
 
-        (
-            PredictedDemand
-            - COALESCE(
-                inv.CurrentStock,
-                0
-            )
-        ) DESC
+        if ($packSize <= 0) {
+            $packSize = 1;
+        }
 
-";
+        /*
+        |--------------------------------------------------------------------------
+        | RECOMMENDED QUANTITY
+        |--------------------------------------------------------------------------
+        */
 
+        $recommendedQuantity =
+            (int) (
+                ceil($netDemand / $packSize) * $packSize
+            );
 
-$result = mysqli_query(
-    $conn,
-    $sql
-);
+        /*
+        |--------------------------------------------------------------------------
+        | SUPPLIER PURCHASE PRICE AND ESTIMATED COST
+        |--------------------------------------------------------------------------
+        */
 
+        $unitCost = (float) $row['SupplierPrice'];
 
-if (!$result) {
+        $estimatedTotal = round(
+            $recommendedQuantity * $unitCost,
+            2
+        );
 
-    echo json_encode([
+        $estimatedGrandTotal = round(
+            $estimatedGrandTotal + $estimatedTotal,
+            2
+        );
 
-        'success' => false,
+        /*
+        |--------------------------------------------------------------------------
+        | RESPONSE DATA
+        |--------------------------------------------------------------------------
+        */
 
-        'error' => mysqli_error($conn)
+        $data[] = [
+            'productId' => (int) $row['Product_ID'],
+            'productName' => $row['ProductName'],
 
-    ]);
+            'productSupplierId' =>
+                (int) $row['ProductSupplier_ID'],
 
-    exit;
+            'supplierId' =>
+                (int) $row['Supplier_ID'],
 
-}
+            'supplierName' =>
+                $row['SupplierName'] ?? 'No Supplier',
 
+            'supplierLocation' =>
+                $row['SupplierLocation'] ?? '',
 
-$data = [];
+            'supplierPhone' =>
+                $row['PhoneNumber'] ?? '',
 
+            'supplierEmail' =>
+                $row['Email'] ?? '',
 
-while (
-    $row =
-        mysqli_fetch_assoc($result)
-) {
+            'currentStock' => $currentStock,
 
-    $currentStock =
-        (float) $row['CurrentStock'];
+            'predictedDemand' => $predictedDemand,
 
+            'netDemand' => round($netDemand, 2),
 
-    $predictedDemand =
-        (float) $row['PredictedDemand'];
+            'packSize' => $packSize,
 
+            'recommendedQuantity' => $recommendedQuantity,
 
-    /*
-    |--------------------------------------------------------------------------
-    | NET DEMAND
-    |--------------------------------------------------------------------------
-    */
+            // Manager starts with the AI recommendation.
+            'orderedQuantity' => $recommendedQuantity,
 
-    $netDemand =
-        $predictedDemand
-        - $currentStock;
+            // Purchase price from the selected active supplier offer.
+            'unitCost' => $unitCost,
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | PACK SIZE
-    |--------------------------------------------------------------------------
-    */
-
-    $packSize =
-        (int) $row['Pack_Size'];
-
-
-    if ($packSize <= 0) {
-
-        $packSize = 1;
-
+            // Estimated cost for this recommended quantity.
+            'estimatedTotal' => $estimatedTotal
+        ];
     }
 
+    mysqli_free_result($result);
 
-    /*
-    |--------------------------------------------------------------------------
-    | AI RECOMMENDED QUANTITY
-    |--------------------------------------------------------------------------
-    */
+    echo json_encode([
+        'success' => true,
+        'data' => $data,
+        'estimatedGrandTotal' => $estimatedGrandTotal,
+        'recommendationCount' => count($data)
+    ]);
 
-    $recommendedQuantity =
+} catch (Throwable $e) {
 
-        ceil(
-            $netDemand /
-            $packSize
-        )
-        * $packSize;
+    http_response_code(500);
 
+    error_log(
+        'AI recommendations error: ' . $e->getMessage()
+    );
 
-    /*
-    |--------------------------------------------------------------------------
-    | RETURN DATA
-    |--------------------------------------------------------------------------
-    */
-
-    $data[] = [
-
-        'productId' =>
-            (int)
-            $row['Product_ID'],
-
-
-        'productName' =>
-            $row['ProductName'],
-
-
-        'supplierId' =>
-
-            $row['Supplier_ID'] !== null
-
-                ? (int)
-                    $row['Supplier_ID']
-
-                : null,
-
-
-        // 'supplierName' =>
-        //     $row['SupplierFName']
-        //     ?? 'No Supplier',
-
-        'supplierName' =>
-            $row['SupplierName']
-            ?? 'No Supplier',
-
-
-        'supplierLocation' =>
-            $row['SupplierLocation']
-            ?? '',
-
-
-        'supplierPhone' =>
-            $row['PhoneNumber']
-            ?? '',
-
-        'supplierEmail' =>
-            $row['Email']
-            ?? '',    
-
-
-        'currentStock' =>
-            $currentStock,
-
-
-        'predictedDemand' =>
-            $predictedDemand,
-
-
-        'netDemand' =>
-            round(
-                $netDemand,
-                2
-            ),
-
-
-        'packSize' =>
-            $packSize,
-
-
-        'recommendedQuantity' =>
-            (int)
-            $recommendedQuantity,
-
-
-        /*
-        |--------------------------------------------------------------------------
-        | MANAGER STARTS WITH AI'S RECOMMENDATION
-        |--------------------------------------------------------------------------
-        */
-
-        'orderedQuantity' =>
-            (int)
-            $recommendedQuantity,
-
-
-        'unitCost' =>
-            (float)
-            (
-                $row['SupplierPrice']
-                ?? 0
-            )
-
-    ];
-
+    echo json_encode([
+        'success' => false,
+        'error' => 'Unable to load AI recommendations. Check the PHP error log.'
+    ]);
 }
-
-
-echo json_encode([
-
-    'success' =>
-        true,
-
-    'data' =>
-        $data
-
-]);
-
-
 ?>

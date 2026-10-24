@@ -1,0 +1,301 @@
+
+/* ==========================================
+   ARCHIVE & RESTORE
+   Matches homepagestyle.css
+   Charcoal toolbar, red accents, yellow buttons
+   ========================================== */
+
+#archive-restore {
+    padding: 0;
+    width: 100%;
+    box-sizing: border-box;
+    color: #212121;
+}
+
+/* Page heading matches the dashboard's dark header */
+#archive-restore .ar-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    background: #1a1a1a;
+    color: #fff;
+    border-bottom: 3px solid #c0392b;
+}
+
+#archive-restore .ar-page-header h2 {
+    margin: 0;
+    padding: 0;
+    color: #fff;
+    border: none;
+    font-size: 22px;
+}
+
+#archive-restore .ar-page-header p {
+    margin: 7px 0 0;
+    color: #ddd;
+    font-size: 13px;
+}
+
+/* Buttons follow existing na-btn styling */
+#archive-restore .ar-refresh-btn {
+    border: 1px solid #fff;
+    border-radius: 4px;
+    padding: 7px 14px;
+    background: #555;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#archive-restore .ar-refresh-btn:hover {
+    background: #c0392b;
+}
+
+#archive-restore .ar-notice {
+    margin: 15px;
+    padding: 12px 15px;
+    background: #fff;
+    color: #333;
+    border: 1px solid #d6d6d6;
+    border-left: 5px solid #c0392b;
+    border-radius: 4px;
+    line-height: 1.5;
+    font-size: 13px;
+}
+
+/* Record type tabs */
+#archive-restore .ar-tabs {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    padding: 10px 15px 0;
+    background: #343a40;
+    border-bottom: 3px solid #c0392b;
+}
+
+#archive-restore .ar-tab {
+    border: 1px solid #111;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+    padding: 9px 18px;
+    background: #555;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#archive-restore .ar-tab:hover {
+    background: #777;
+}
+
+#archive-restore .ar-tab.active {
+    background: #c0392b;
+    color: #fff;
+    border-color: #8f251c;
+}
+
+/* Filter toolbar matches the dashboard toolbar */
+#archive-restore .ar-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 15px;
+    background: #343a40;
+    color: #fff;
+}
+
+#archive-restore .ar-status-switch {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+#archive-restore .ar-status-switch button {
+    border: 1px solid #111;
+    border-radius: 4px;
+    padding: 7px 13px;
+    background: #555;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+#archive-restore .ar-status-switch button:hover {
+    background: #777;
+}
+
+#archive-restore .ar-status-switch button.active {
+    background: #ffc107;
+    color: #212121;
+    border-color: #d39e00;
+}
+
+/* Search box */
+#archive-restore .ar-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 220px;
+    padding: 0 10px;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    background: #fff;
+    color: #333;
+}
+
+#archive-restore .ar-search-wrap input {
+    width: 100%;
+    min-width: 0;
+    padding: 8px 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #222;
+    font-family: Arial, sans-serif;
+}
+
+/* Status message */
+#archive-restore .ar-message {
+    margin: 12px 15px;
+    min-height: 18px;
+    color: #333;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+#archive-restore .ar-message.error {
+    color: #c0392b;
+}
+
+#archive-restore .ar-message.success {
+    color: #027004;
+}
+
+/* White table panel, consistent with other dashboard tables */
+#archive-restore .ar-table-wrap {
+    margin: 0 15px;
+    width: calc(100% - 30px);
+    overflow-x: auto;
+    background: #fff;
+    border: 1px solid #d6d6d6;
+    box-sizing: border-box;
+}
+
+#archive-restore .ar-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+}
+
+#archive-restore .ar-table th {
+    padding: 10px 12px;
+    background: #e9ecef;
+    color: #023364;
+    border: 1px solid #dee2e6;
+    text-align: center;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+#archive-restore .ar-table td {
+    padding: 10px 12px;
+    color: #222;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#archive-restore .ar-table tbody tr:hover td {
+    background: #ffd4d4;
+}
+
+#archive-restore .ar-empty {
+    padding: 25px !important;
+    text-align: center !important;
+    color: #666 !important;
+}
+
+/* Status labels */
+#archive-restore .ar-status-pill {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 1px solid rgba(0, 0, 0, .2);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#archive-restore .ar-status-pill.active {
+    background: #014718;
+    color: #ffffff;
+}
+
+#archive-restore .ar-status-pill.archived {
+    background: #c0392b;
+    color: #fff;
+}
+
+/* Archive / deactivate uses red; restore uses green */
+#archive-restore .ar-action-btn {
+    border: 1px solid rgba(0, 0, 0, .2);
+    border-radius: 4px;
+    padding: 7px 12px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#archive-restore .ar-action-btn.archive {
+    background: #c0392b;
+    color: #fff;
+}
+
+#archive-restore .ar-action-btn.archive:hover {
+    background: #922b21;
+}
+
+#archive-restore .ar-action-btn.restore {
+    background: #027004;
+    color: #fff;
+}
+
+#archive-restore .ar-action-btn.restore:hover {
+    background: #023003;
+}
+
+#archive-restore button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+#archive-restore .ar-footnote {
+    margin: 12px 15px 20px;
+    color: #555;
+    font-size: 12px;
+}
+
+/* Mobile layout */
+@media (max-width: 700px) {
+    #archive-restore .ar-page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    #archive-restore .ar-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    #archive-restore .ar-search-wrap {
+        width: auto;
+        min-width: 0;
+    }
+}

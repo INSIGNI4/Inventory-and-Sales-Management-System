@@ -183,6 +183,7 @@ let script = function() {
                 BootstrapDialog.confirm({
                     title: 'Add to Order',
                     type: BootstrapDialog.TYPE_DEFAULT,
+                    cssClass: 'pos-dark-dialog',
                     message: dialogForm,
                     callback: function(addOrder) {
                         if (addOrder) {
@@ -213,6 +214,7 @@ let script = function() {
                 BootstrapDialog.confirm({
                     type: BootstrapDialog.TYPE_DANGER,
                     title: `<strong>Delete Order Item</strong>`,
+                    cssClass: 'pos-dark-dialog',
                     message: `Are you sure to delete: <strong>${productInfo['name']}</strong>`,
                     callback: function(toDelete) {
                         if (toDelete) {
@@ -323,7 +325,7 @@ let script = function() {
                     BootstrapDialog.confirm({
                         type: BootstrapDialog.TYPE_INFO,
                         title: `<strong>CHECKOUT</strong>`,
-                        cssClass: `checkoutDialog`,
+                        cssClass: 'checkoutDialog pos-dark-dialog',
                         message: content,
                         btnOKLabel: `Checkout`,
                         callback: function(checkout){
@@ -362,6 +364,7 @@ let script = function() {
 
                                             BootstrapDialog.alert({
                                                 type: type,
+                                                cssClass: 'pos-dark-dialog',
                                                 title: response.success ? 'Success' : 'Error',
                                                 message: response.message,
                                                 callback: function(isOk){
@@ -677,6 +680,7 @@ let script = function() {
         BootstrapDialog.alert({
             title: '<strong>Warning!</strong>',
             type: BootstrapDialog.TYPE_DANGER,
+            cssClass: 'pos-dark-dialog',
             message: message
         });
     };

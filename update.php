@@ -328,53 +328,6 @@ if ($table_name === 'restock') {
 
 
 
-
-
-
-
-
-
-
-
-    /*
-     * If manager selected Received but the quantity
-     * is still less than the ordered quantity,
-     * automatically change it to Partially-Received.
-     */
-    // if (
-    //     ($_POST['Status'] ?? '') === 'Received'
-    //     &&
-    //     $totalThisDelivery < $restockOrderedQuantity
-    // ) {
-
-    //     $isPartialRestock = true;
-
-    //     $update_arr['Status'] =
-    //         'Partially-Received';
-    // }
-
-
-    // /*
-    //  * Manager may also directly select
-    //  * Partially-Received.
-    //  */
-    // elseif (
-    //     ($_POST['Status'] ?? '') === 'Partially-Received'
-    // ) {
-
-    //     $isPartialRestock = true;
-    // }
-
-
-
-
-
-
-
-    /*
-    * Determine partial delivery from quantities,
-    * not from the Status dropdown.
-    */
     if (
         $totalThisDelivery > 0
         &&
@@ -603,7 +556,8 @@ if ($stmt->execute()) {
                     $conn->prepare("
                         SELECT
                             Supplier_ID,
-                            Type
+                            Type,
+                            PurchaseUnitCost
                         FROM restock
                         WHERE Orestock_ID = ?
                         LIMIT 1
@@ -632,6 +586,11 @@ if ($stmt->execute()) {
                 $type =
                     $restockInfo['Type']
                     ?? 'Re-Order';
+
+
+                $purchaseUnitCost = $restockInfo['PurchaseUnitCost'] !== null
+                    ? (float) $restockInfo['PurchaseUnitCost']
+                    : null;                    
 
 
                 /*
@@ -674,6 +633,7 @@ if ($stmt->execute()) {
                                 ItemToOrder_ID,
                                 Type,
                                 Quantity,
+                                PurchaseUnitCost,
                                 Product_ID,
                                 Supplier_ID,
                                 Status,
@@ -686,6 +646,7 @@ if ($stmt->execute()) {
                                 ?,
                                 ?,
                                 ?,
+                                ?,
                                 'Backorder-Fulfillment',
                                 0,
                                 0
@@ -693,10 +654,11 @@ if ($stmt->execute()) {
                         ");
 
                     $childStmt->bind_param(
-                        "isiii",
+                        "isidii",
                         $itemToOrderId,
                         $type,
                         $remainingQuantity,
+                        $purchaseUnitCost,
                         $productId,
                         $supplierId
                     );
@@ -732,6 +694,7 @@ if ($stmt->execute()) {
                 Supplier_ID,
                 Type,
                 Quantity,
+                PurchaseUnitCost,
                 TotalReceived,
                 withIssue,
                 Expected_Receive_Date
@@ -745,6 +708,11 @@ if ($stmt->execute()) {
 
         $parentResult = $parentStmt->get_result();
         $parentRow = $parentResult->fetch_assoc();
+
+
+        $purchaseUnitCost = $parentRow['PurchaseUnitCost'] !== null
+            ? (float) $parentRow['PurchaseUnitCost']
+            : null;        
 
         $parentStmt->close();
 
@@ -801,10 +769,10 @@ if ($stmt->execute()) {
                 if ($checkBackorderResult->num_rows === 0) {
 
                     $backorderStmt = $conn->prepare("
-                        INSERT INTO restock
-                        (
+                        INSERT INTO restock (
                             Type,
                             Quantity,
+                            PurchaseUnitCost,
                             Product_ID,
                             Supplier_ID,
                             Expected_Receive_Date,
@@ -812,8 +780,8 @@ if ($stmt->execute()) {
                             TotalReceived,
                             withIssue
                         )
-                        VALUES
-                        (
+                        VALUES (
+                            ?,
                             ?,
                             ?,
                             ?,
@@ -838,9 +806,10 @@ if ($stmt->execute()) {
                         $parentRow['Expected_Receive_Date'];
 
                     $backorderStmt->bind_param(
-                        "siiis",
+                        "sidiis",
                         $type,
                         $remainingQuantity,
+                        $purchaseUnitCost,
                         $productId,
                         $supplierId,
                         $expectedDate
