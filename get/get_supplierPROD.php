@@ -1,11 +1,40 @@
 
-
 <?php
-include('connect.php');
 
-$pdo = new PDO("mysql:host=localhost;dbname=login", "root", "12345QWERT");
-$stmt = $pdo->query("SELECT Supplier_ID FROM supplier");
-$supplier = $stmt->fetchAll(PDO::FETCH_COLUMN);
-echo json_encode($supplier);
+header('Content-Type: application/json; charset=utf-8');
+
+include(__DIR__ . '/../connect.php');
+
+try {
+
+    $query = "SELECT Supplier_ID FROM supplier";
+
+    $result = $conn->query($query);
+
+    if (!$result) {
+        throw new RuntimeException($conn->error);
+    }
+
+    $supplier = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $supplier[] = $row['Supplier_ID'];
+    }
+
+    $result->free();
+
+    echo json_encode($supplier);
+
+} catch (Throwable $e) {
+
+    error_log('Supplier ID retrieval failed: ' . $e->getMessage());
+
+    http_response_code(500);
+
+    echo json_encode([
+        'success' => false,
+        'message' => 'Unable to retrieve supplier IDs.'
+    ]);
+}
+
 ?>
-

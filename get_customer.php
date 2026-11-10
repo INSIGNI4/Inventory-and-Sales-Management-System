@@ -1,12 +1,26 @@
 
-
 <?php
 include('connect.php');
 
+header('Content-Type: application/json; charset=utf-8');
 
-$pdo = new PDO("mysql:host=localhost;dbname=login", "root", "12345QWERT");
-$stmt = $pdo->query("SELECT Customer_ID,CustomerName,Location FROM customers");
-$customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$sql = "SELECT Customer_ID, CustomerName, Location FROM customers";
+$result = $conn->query($sql);
+
+if (!$result) {
+    error_log('Customer query failed: ' . $conn->error);
+    http_response_code(500);
+    echo json_encode(['error' => 'Unable to retrieve customers.']);
+    exit;
+}
+
+$customers = [];
+
+while ($row = $result->fetch_assoc()) {
+    $customers[] = $row;
+}
+
 echo json_encode($customers);
-?>
 
+$result->free();
+?>

@@ -323,15 +323,20 @@ if (!$usersResult) {
 
                 <a class="nav-link" onclick="showContentSection('order-restock')">Restock</a>
                 <a class="nav-link has-dropdown" onclick="showContentSection('transaction-sales')">Transaction & Sales</a>
-                <a class="nav-link" onclick="showContentSection('real-stock-adjustments')">Stock Adjustment</a>
+                
 
                 <!-- <a class="nav-link" onclick="showContentSection('sales-aggregation')">Sales Aggregation</a> -->
                 <!-- <a class="nav-link has-dropdown" onclick="showContentSection('forecast-analytics')">Forecast & Analytics</a> -->
 
                 <a class="nav-link" onclick="showContentSection('stock-adjustments')">Reports</a>
                 
-                <a class="nav-link" onclick="showContentSection('account')">Account</a>
-
+                
+                <?php
+                $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                if (in_array($accountType, ['super admin'], true)) {
+                ?>
+                    <a class="nav-link" onclick="showContentSection('account')">Account</a>
+                <?php } ?> 
 
 
 
@@ -339,11 +344,14 @@ if (!$usersResult) {
 
                 <?php
                 $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
-                if (in_array($accountType, ['manager', 'super admin'], true)) {
+                if (in_array($accountType, ['manager'], true)) {
                 ?>
                     <!-- <a class="nav-link" onclick="showContentSection('tax-settings')">
                         Tax Settings
                     </a> -->
+                    <a class="nav-link" onclick="showContentSection('real-stock-adjustments')">Stock Adjustment</a>
+
+                    
 
                         
                     <a class="nav-link" onclick="showContentSection('pricing-markup')">
@@ -1028,7 +1036,7 @@ if (!$usersResult) {
                         </div>
                         <div style="display: flex; justify-content:space-between;" >
                             <!-- <div class="center-controls"><button class="last-updated-button">🔄 Last Updated</button></div> -->
-                            <div class="na-quick-search">🔍 Quick Search</div>
+                            <!-- <div class="na-quick-search">🔍 Quick Search</div> -->
                         </div>
                     </div>
                     <div class="table-container">
@@ -1134,12 +1142,19 @@ if (!$usersResult) {
                         <!-- <input type="checkbox"> -->
 
                         <span id="products-count" class="na-count"><?= $totalRows ?></span>
+                        <?php
+                            $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                            if (in_array($accountType, ['manager'], true)) {
+                            ?>
+                        
+
                         <button id="edit-product-btn" class="na-btn na-btn-add1" type="button"><i class="fa-solid fa-pen-to-square"></i></button>
                         <!-- <button id="delete-product-btn" class="na-btn na-btn-add1" type="button"><i class="fa-solid fa-trash"></i></button> -->
                         <!-- <span class="na-icon-btn">📝</span>
                         <span class="na-icon-btn">🗑️</span> -->
                         <!-- <span class="na-icon-btn">🖨️</span> -->
                         <button id="products-add-btn" class="na-btn na-btn-add" type="button">ADD</button>
+                        <?php } ?>
                         </div>
                         <!-- <div>
                             <div class="na-quick-search">🔍 Quick Search</div>
@@ -1511,6 +1526,10 @@ if (!$usersResult) {
                             ?>
 
                             <span id="products-count" class="na-count"><?= $totalRows ?></span>
+                            <?php
+                            $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                            if (in_array($accountType, ['manager'], true)) {
+                            ?>
 
                             <button id="edit-supplier-btn" class="na-btn na-btn-add1" type="button">
                                 <i class="fa-solid fa-pen-to-square"></i>
@@ -1522,10 +1541,11 @@ if (!$usersResult) {
 
 
                             <button id="sup-add-btn" class="na-btn na-btn-add" type="button">ADD</button>
+                            <?php } ?>
                         </div>
 
                         <div>
-                            <div class="na-quick-search">🔍 Quick Search</div>
+                            <!-- <div class="na-quick-search">🔍 Quick Search</div> -->
                         </div>      
 
 
@@ -1881,8 +1901,20 @@ if (!$usersResult) {
                     <div class="toolbar sticky-div-2" style="display: flex; justify-content:space-between;">
                         <div>
                             <?php 
-                            $totalRows = count($customers);
+                            $totalRows = count($customersreturns);
                             ?>
+                            <span id="products-count" class="na-count">#</span>
+                            
+
+
+                            
+
+                            <?php
+                            $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                            if (in_array($accountType, ['manager'], true)) {
+                            ?>
+                            
+                        
 
                             <!-- <span id="products-count" class="na-count"><?= $totalRows ?></span> -->
                             <button id="edit-cus-return-btn" class="na-btn na-btn-add1" type="button" title="Edit Customer Return">
@@ -1897,10 +1929,12 @@ if (!$usersResult) {
 
                             <button id="cusreturns-add-btn" class="na-btn na-btn-add" style="display: flex;">ADD</button>
                             <button id="supreturns-add-btn" class="na-btn na-btn-add" style="display: flex;">ADD</button>
+
+                            <?php } ?>
                         </div>
 
                         <div>
-                            <div class="na-quick-search">🔍 Quick Search</div>
+                            <!-- <div class="na-quick-search">🔍 Quick Search</div> -->
                         </div>  
 
 
@@ -2446,6 +2480,12 @@ if (!$usersResult) {
                                 ADD
                             </button> -->
 
+                            
+                            <?php
+                            $accountType = strtolower(trim($_SESSION['accountType'] ?? ''));
+                            if (in_array($accountType, ['manager'], true)) {
+                            ?>
+
                             <button id="order-restock-add-btn" class="na-btn na-btn-add" type="button">
                                 CREATE ORDER
                             </button>
@@ -2457,6 +2497,7 @@ if (!$usersResult) {
                             <button id="update-restock-status-btn" class="na-btn na-btn-update" type="button" style="display:inline-block;">
                                 UPDATE
                             </button>
+                            <?php } ?>  
                         </div>
 
 
@@ -2465,7 +2506,7 @@ if (!$usersResult) {
 
 
                         <div>
-                            <div class="na-quick-search">🔍 Quick Search</div>
+                            <!-- <div class="na-quick-search">🔍 Quick Search</div> -->
                         </div>  
 
 

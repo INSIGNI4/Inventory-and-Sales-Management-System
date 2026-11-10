@@ -1,85 +1,86 @@
 
 <?php
 
-    $servername = "localhost";
-    $username   = "root";
-    $password   = "12345QWERT";
+// Load local database configuration.
+$configFile = __DIR__ . '/config.local.php';
 
-    // 1. Connecting to the first database (login)
-    $conn = new mysqli($servername, $username, $password, "login");
+if (!file_exists($configFile)) {
+    error_log('Database configuration file is missing.');
+    http_response_code(500);
+    die('Database configuration is not available.');
+}
 
-    if ($conn->connect_error) {
-        die("Database 1 connection failed: " . $conn->connect_error);
+$dbConfig = require $configFile;
+
+
+
+if (!is_array($dbConfig)) {
+    error_log('Database configuration must return an array.');
+    http_response_code(500);
+    die('Database configuration is invalid.');
+}
+
+// Validate required configuration.
+$requiredKeys = [
+    'host',
+    'username',
+    'password',
+    'inventory_database',
+    'pos_database'
+];
+
+foreach ($requiredKeys as $key) {
+    if (!array_key_exists($key, $dbConfig)) {
+        error_log("Missing database configuration: {$key}");
+        http_response_code(500);
+        die('Database configuration is incomplete.');
     }
+}
 
-    // Make the first connection global
+try {
+
+    // 1. Connect to the inventory database.
+    $conn = new mysqli(
+        $dbConfig['host'],
+        $dbConfig['username'],
+        $dbConfig['password'],
+        $dbConfig['inventory_database']
+    );
+
+    $conn->set_charset('utf8mb4');
+
+    // Preserve global connection access.
     $GLOBALS['conn'] = $conn;
 
 
-    // 2. Connecting to the second database (point_of_sale)
-    $conn_pos = new mysqli($servername, $username, $password, "point_of_sale");
+    // 2. Connect to the POS database.
+    $conn_pos = new mysqli(
+        $dbConfig['host'],
+        $dbConfig['username'],
+        $dbConfig['password'],
+        $dbConfig['pos_database']
+    );
 
-    if ($conn_pos->connect_error) {
-        die("Database 2 connection failed: " . $conn_pos->connect_error);
-    }
+    $conn_pos->set_charset('utf8mb4');
 
-    // Make the second connection global
+    // Preserve global connection access.
     $GLOBALS['conn_pos'] = $conn_pos;
 
+} catch (Throwable $e) {
 
-    
-    
-    
-    // return $conn;
-    
-    
-    // $host="localhost";
-    // $user="root";
-    // $pass="12345QWERT";
-    
-    // $db="login";
-    // $conn=new mysqli($host,$user,$pass,$db);
-    
-    //     try {
-    //         $pdo = new PDO("mysql:host=localhost;dbname=login", "root", "12345QWERT");
-    //         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    //     } catch (PDOException $e) {
-    //         die("Database connection failed: " . $e->getMessage());
-    //     }
-    //     $GLOBALS['conn'] = $conn;
-    
-        
+    error_log('Database connection error: ' . $e->getMessage());
 
+    // Close any connection that was successfully established.
+    if (isset($conn) && $conn instanceof mysqli) {
+        $conn->close();
+    }
 
+    if (isset($conn_pos) && $conn_pos instanceof mysqli) {
+        $conn_pos->close();
+    }
 
-   
-    // $servername = "localhost";
-    // $username   = "root";
-    // $password   = "12345QWERT";
-
-    // // 1. Connecting to the first database (login) using PDO
-    // try {
-    //     $conn = new PDO("mysql:host=$servername;dbname=login", $username, $password);
-    //     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    // } catch (PDOException $e) {
-    //     die("Database 1 connection failed: " . $e->getMessage());
-    // }
-
-    // // Make the first connection global
-    // $GLOBALS['conn'] = $conn;
-
-
-    // // 2. Connecting to the second database (point_of_sale) using PDO
-    // try {
-    //     $conn_pos = new PDO("mysql:host=$servername;dbname=point_of_sale", $username, $password);
-    //     $conn_pos->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    // } catch (PDOException $e) {
-    //     die("Database 2 connection failed: " . $e->getMessage());
-    // }
-
-    // // Make the second connection global
-    // $GLOBALS['conn_pos'] = $conn_pos;
-
-
+    http_response_code(500);
+    die('Unable to connect to the database. Please contact the administrator.');
+}
 
 ?>

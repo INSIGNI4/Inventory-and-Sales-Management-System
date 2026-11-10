@@ -1,21 +1,24 @@
+
 <?php
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
 include('connect.php');
 
 try {
-    $pdo = new PDO("mysql:host=localhost;dbname=login", "root", "12345QWERT");
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
     // Matches your exact schema: StorePrice, UnitsOrdered, UnitSold
-    $query = "SELECT Product_ID, ProductName, StorePrice, 
-                     (COALESCE(UnitsOrdered, 0) - COALESCE(UnitSold, 0)) AS AvailableStock 
+    $query = "SELECT Product_ID, ProductName, StorePrice,
+                     (COALESCE(UnitsOrdered, 0) - COALESCE(UnitSold, 0)) AS AvailableStock
               FROM product";
 
-    $stmt = $pdo->query($query);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $result = $conn->query($query);
+
+    if (!$result) {
+        throw new RuntimeException($conn->error);
+    }
 
     $products = [];
-    foreach ($rows as $row) {
+
+    while ($row = $result->fetch_assoc()) {
         $pid = $row['Product_ID'];
         $stock = (int)$row['AvailableStock'];
 
@@ -26,15 +29,22 @@ try {
         ];
     }
 
+    $result->free();
+
     echo json_encode([
         'status'   => 'success',
         'products' => $products
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
+
+    error_log('POS product retrieval failed: ' . $e->getMessage());
+
+    http_response_code(500);
+
     echo json_encode([
         'status'  => 'error',
-        'message' => $e->getMessage()
+        'message' => 'Unable to retrieve products.'
     ]);
 }
 ?>
